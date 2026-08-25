@@ -50,7 +50,8 @@ No build, test, or generation steps exist in this repository yet.
 
 ## Delivery lifecycle
 
-Changes follow Issue -> Branch -> Commit -> Pull Request -> Review -> Merge.
+Changes follow Issue -> Branch -> Commit -> Pull Request -> Review -> Merge,
+where independent review plus required CI must pass before merge.
 Before this repository's first commit, branch/worktree/commit/pull-request
 stages are unavailable: initialization happens in a shared checkout with
 explicit disjoint scopes, preserved unrelated changes, and CI-equivalent
