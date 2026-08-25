@@ -21,29 +21,31 @@ scaffold itself is accepted.
 
 ## Prerequisites
 
-Proposed toolchain expectations (wiring lands in a separately authorized
-follow-up task):
+Toolchain expectations (version pins live exclusively in the justfile and are
+mirrored by [package.json](package.json); never invoke formatters or linters
+by name):
 
-- `just` — command runner. Quality gates are expected to be owned exclusively
-  by this repository's justfile once it exists; do not invoke formatters or
-  linters by name.
+- `just` — command runner owning all quality-gate invocations.
 - `bun` / `bunx --bun` — JavaScript execution and package management. Never
   use `npm`, `npx`, or `yarn` in any Bitty repository.
 - `markdownlint-cli2` — Markdown linting, configured by
   [.markdownlint-cli2.jsonc](.markdownlint-cli2.jsonc).
+- `prettier` — formatting checks across the repository.
 - `commitlint` — Conventional Commit message linting, configured by
   [commitlint.config.ts](commitlint.config.ts).
+- `lefthook` — Git hook management, configured by
+  [lefthook.yml](lefthook.yml).
 
 No build, test, or generation steps exist in this repository yet.
 
 ## Development setup
 
-Until hook and justfile wiring is authorized and merged, validation is local
-and manual:
-
 1. Enter this repository before running Git, CarryCtx, or toolchain commands.
-2. Lint changed Markdown with the committed configuration above.
-3. Record scoped work in CarryCtx (task, session, progress, checkpoint) and
+2. Install pinned development dependencies: `bun install`.
+3. Enable Git hooks: `just hooks-install`.
+4. Run all quality gates: `just check` (Markdown lint plus Prettier format
+   check; CI runs the same aggregate target).
+5. Record scoped work in CarryCtx (task, session, progress, checkpoint) and
    stop at review; independent review is required for acceptance.
 
 ## Delivery lifecycle
@@ -70,7 +72,9 @@ docs(readme): clarify audience boundaries
 chore(governance): wire lefthook hooks
 ```
 
-Commit messages are expected to pass commitlint once Git hook wiring lands.
+Commit messages are validated by commitlint through the `commit-msg` hook
+(`just hooks-install` enables it locally) and in CI-equivalent local runs of
+`just commit-check`.
 
 ## Changelog
 
