@@ -62,6 +62,17 @@ compatibility), validation evidence, dependencies, and cross-repository
 ordering. Documentation synchronization with canonical `bitty-docs` is part
 of definition of done.
 
+### Branch and worktree naming
+
+Use the workspace-uniform convention for every task branch and worktree:
+
+- Branches follow `ctx-XXXX/<type>-<short-slug>`, where `XXXX` is the owning
+  CarryCtx task number, `<type>` is one of `feat|fix|chore|docs`, and the slug
+  is short kebab-case (for example `ctx-0031/feat-isolation-rfc`).
+- CarryCtx-bound worktrees live at `.worktrees/ctx-XXXX-<type>-<short-slug>`
+  with `/` mapped to `-`.
+- One branch per task. Commander housekeeping branches may use `cmd/<slug>`.
+
 ## Committing
 
 Use Conventional Commits:
