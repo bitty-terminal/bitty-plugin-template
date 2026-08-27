@@ -2,7 +2,7 @@
 # Tool version pins live here (one place) and mirror package.json devDependencies;
 # keep both identical when bumping. All tool invocations go through bun/bunx.
 
-markdownlint_pin := "0.23.1"
+markdownlint_pin := "0.23.2"
 prettier_pin := "3.9.6"
 commitlint_pin := "21.2.2"
 lefthook_pin := "2.1.10"
