@@ -19,6 +19,14 @@ lint:
 lint-files *files:
     bunx --bun markdownlint-cli2@{{markdownlint_pin}} {{files}}
 
+# Format all files with Prettier.
+fmt:
+    bunx --bun prettier@{{prettier_pin}} --write . --ignore-unknown
+
+# Format specific files with Prettier.
+fmt-files *files:
+    bunx --bun prettier@{{prettier_pin}} --write {{files}}
+
 # Check formatting of all files with Prettier.
 fmt-check:
     bunx --bun prettier@{{prettier_pin}} --check . --ignore-unknown
@@ -41,6 +49,14 @@ hooks-uninstall:
 
 # Aggregate gate run locally and in CI.
 check: lint fmt-check
+
+# Generate a fresh example plugin into an ignored scratch dir and run the
+# generated repository's own gates (clean-generation evidence).
+clean-generation:
+    @rm -rf tmp/clean-generation
+    @mkdir -p tmp/clean-generation
+    bun scripts/generate-plugin.mjs --id example.hello --name "Hello Plugin" --description "Minimal runnable Bitty plugin example." --version 0.1.0 --dir tmp/clean-generation/hello-plugin
+    cd tmp/clean-generation/hello-plugin && just check
 
 # Publish a ctxpack snapshot to the bitty-plugin-template-workflow mirror (commander
 # merge closeout only; never a git hook). Dry run exports + validates without push.

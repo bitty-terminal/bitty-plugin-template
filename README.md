@@ -1,72 +1,73 @@
 # Bitty Plugin Template
 
-This repository is the future home of a reproducible starting point for Bitty
-plugin projects. It is currently unborn and pre-implementation: governance
-files exist, but there is no initial commit or usable template.
-
-## Ownership boundary
-
-This repository will own template source, clean-generation evidence, and
-template-specific contributor guidance after separately reviewed tasks
-authorize them. It does not define the Bitty host, plugin API, SDK, capability
-model, package format, compatibility policy, or release process.
+Reproducible starting point for Bitty plugin repositories. This repository owns
+the template source, the deterministic generator, and clean-generation
+evidence. It does not define the Bitty host, plugin API, SDK, capability model,
+package format, compatibility policy, or release process.
 
 Canonical product and plugin contracts belong to the
-[bitty-docs repository](https://github.com/bitty-terminal/bitty-docs). The
-[plugin-system specification](https://github.com/bitty-terminal/bitty-docs/blob/main/docs/extensibility/plugin-system.md)
-and the
-[security overview](https://github.com/bitty-terminal/bitty-docs/blob/main/docs/security/overview.md)
-govern future scaffold work. SDK-specific implementation evidence will belong
-to the
+[bitty-docs repository](https://github.com/bitty-terminal/bitty-docs).
+SDK-specific implementation evidence belongs to the
 [bitty-plugin-sdk repository](https://github.com/bitty-terminal/bitty-plugin-sdk).
 
-A future template must derive from accepted host and SDK contracts; generated
-files cannot create or redefine those contracts.
+## What this repository provides
 
-## Workflow mirror restore
+- `template/` — the generated plugin tree: `bitty-plugin.toml`,
+  `lua/<module>/init.lua`, `scripts/validate-manifest.mjs`, `justfile`,
+  README, and a CI workflow.
+- `scripts/generate-plugin.mjs` — deterministic generator with validated
+  inputs that refuses to overwrite an existing target.
+- `just clean-generation` — generates an example plugin into an ignored
+  scratch directory and runs the generated repository's own `just check`.
+- `just check` — repository formatting and Markdown lint gates.
 
-CarryCtx runtime state (`.git/carryctx/state.sqlite`) is never cloned. The
-engineering workflow is mirrored to
-[bitty-plugin-template-workflow](https://github.com/bitty-terminal/bitty-plugin-template-workflow)
-as redacted ctxpack snapshots, with `LATEST` naming the newest snapshot. A
-fresh clone can restore its local CarryCtx DB from that mirror:
+## Generating a plugin
 
 ```sh
-just workflow-import-dry   # fetch + validate the LATEST snapshot; no DB writes
-just workflow-import       # initialize CarryCtx state if needed, then import
+bun scripts/generate-plugin.mjs \
+  --id example.hello \
+  --name "Hello Plugin" \
+  --description "Minimal runnable Bitty plugin example." \
+  --dir /path/to/new-plugin
 ```
 
-The import validates snapshot shape, per-table row counts, and the v2 redacted
-stamp before any write, refuses to replace a non-empty local DB without
-`--force` (`just workflow-import --force`, or pass flags directly to
-`scripts/fetch-ctxpack.sh`), and prints provenance (snapshot id + source
-commit) plus restored counts. Mirror snapshots are redacted publication
-artifacts: CarryCtx refuses them as merge sources, so restore always uses
-replace mode, and a secret that leaked before rotation must still be rotated
-at the source.
+The generator validates the plugin id, display name, description, and SemVer
+version, copies `template/` verbatim, substitutes every placeholder
+deterministically, and fails if a placeholder remains.
 
-## Current status
+## Clean-generation evidence
 
-This repository does not currently provide:
+`just clean-generation` is the repeatable evidence gate: it generates a fresh
+tree from template source and runs that tree's documented checks (manifest
+validation plus a Lua parse) without hidden local state. CI runs it after
+`just check`.
 
-- a usable plugin scaffold or generated project tree;
-- a plugin manifest, package definition, or placeholder contract;
-- source examples, tests, fixtures, or generated documentation;
-- installation, initialization, or repository-generation commands;
-- a public API or SDK compatibility promise;
-- CI, publishing, update, migration, release, or distribution behavior.
+## Contract dependencies
 
-Repository existence and a planned template boundary are not implementation,
-compatibility, or release evidence.
+- Manifest file name, schema, hard limits, and capability identifiers come
+  from the accepted plugin-platform RFC in `bitty-docs`. The template never
+  redefines them.
+- `bitty-plugin-lint` (bitty-plugin-sdk, R-SDK-2) is not yet published. Until
+  it is, generated repositories use `scripts/validate-manifest.mjs`, a
+  fail-closed transitional check that mirrors implemented host and package
+  validation; it is replaced when the SDK CLI lands.
+- Plugin API bindings in `init.lua` follow the accepted v1 surface sketch;
+  `bitty.d.lua` (R-SDK-1) becomes authoritative.
 
-## Safe-generation boundary
+## Safety boundary
 
-Future generation must be deterministic, validated from a clean durable
-scratch location, and reviewed across both template source and generated output.
-Generated plugins must use explicit least privilege, safe examples, bounded
-inputs, and no embedded secrets, install-time execution, native in-process
-escape, or ambient operating-system authority.
+Generation is deterministic and validated from a clean scratch location.
+Generated plugins use explicit least privilege, no embedded secrets, no
+install-time execution, no ambient OS authority, and no native in-process
+escape. Generated workflows use a read-only token, SHA-pinned actions, and
+never publish from pull-request code.
 
-Any scaffold, manifest, example, workflow, package, or remote-repository action
-requires a separately scoped task and independent review. This README creates
-no local or remote project, publishes nothing, and authorizes no generation.
+## Repository checks
+
+```sh
+just check            # markdownlint + prettier
+just clean-generation # generate a plugin and run its gates
+```
+
+Any scaffold, manifest, example, workflow, package, or remote-repository
+action requires a separately scoped task and independent review.

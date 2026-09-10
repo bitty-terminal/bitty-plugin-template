@@ -16,7 +16,7 @@ jobs:
   check:
     name: Quality gates
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -28,23 +28,5 @@ jobs:
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version: 1.4.0
-      - name: Install pinned dependencies
-        run: bun install --frozen-lockfile
       - name: Run quality gates
         run: just check
-      - name: Clean-generation gate
-        run: just clean-generation
-
-  actionlint:
-    name: Lint GitHub Actions workflows
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Run actionlint
-        uses: docker://rhysd/actionlint:1.7.12
-      - name: Lint the generated template workflow
-        uses: docker://rhysd/actionlint:1.7.12
-        with:
-          args: template/.github/workflows/ci.yml
