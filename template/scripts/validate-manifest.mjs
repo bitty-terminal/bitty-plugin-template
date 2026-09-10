@@ -386,15 +386,33 @@ function validateLazy(value, pluginId) {
   }
 }
 
-function validateDependencies(value) {
+function validateDependencies(value, pluginId) {
   const table = requireObject(value, "dependencies");
-  const entries = Object.entries(table);
+  const entries = [];
+  const collect = (node, path) => {
+    if (typeof node === "string") {
+      entries.push([path, node]);
+      return;
+    }
+    if (typeof node === "object" && node !== null && !Array.isArray(node)) {
+      for (const [key, child] of Object.entries(node)) {
+        collect(child, `${path}.${key}`);
+      }
+      return;
+    }
+    fail(`dependencies.${path} must be a version requirement string`);
+  };
+  for (const [key, child] of Object.entries(table)) {
+    collect(child, key);
+  }
   if (entries.length > MAX_DEPENDENCIES) {
     fail(`dependencies declares more than ${MAX_DEPENDENCIES} entries`);
   }
   for (const [id, requirement] of entries) {
     validatePluginId(id, `dependencies.${id}`);
-    requireString(requirement, `dependencies.${id}`);
+    if (id === pluginId) {
+      fail("dependencies must not include the plugin itself");
+    }
     validateVersionRequirement(requirement, `dependencies.${id}`);
   }
 }
@@ -449,29 +467,20 @@ function validateManifest(data) {
   rejectUnknownKeys(plugin, PLUGIN_KEYS, "plugin");
   const id = requireString(plugin.id, "plugin.id");
   validatePluginId(id, "plugin.id");
-  validateDisplayText(
-    requireString(plugin.name, "plugin.name"),
-    "plugin.name",
-    MAX_NAME_LEN,
-  );
-  if (plugin.name.length === 0) {
+  const name = requireString(plugin.name, "plugin.name");
+  if (name.trim().length === 0) {
     fail("plugin.name must not be empty");
   }
+  validateDisplayText(name, "plugin.name", MAX_NAME_LEN);
   validateSemver(
     requireString(plugin.version, "plugin.version"),
     "plugin.version",
   );
-  if (plugin.description !== undefined) {
-    requireString(plugin.description, "plugin.description");
-    validateDisplayText(
-      plugin.description,
-      "plugin.description",
-      MAX_DESCRIPTION_LEN,
-    );
-  }
+  const description = requireString(plugin.description, "plugin.description");
+  validateDisplayText(description, "plugin.description", MAX_DESCRIPTION_LEN);
   if (plugin.license !== undefined) {
     const license = requireString(plugin.license, "plugin.license");
-    if (license.length === 0) {
+    if (license.trim().length === 0) {
       fail("plugin.license must not be empty when present");
     }
     if (license.length > MAX_LICENSE_LEN) {
@@ -497,7 +506,7 @@ function validateManifest(data) {
   }
 
   if (data.dependencies !== undefined) {
-    validateDependencies(data.dependencies);
+    validateDependencies(data.dependencies, id);
   }
 
   if (data.services !== undefined) {

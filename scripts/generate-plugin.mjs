@@ -181,7 +181,7 @@ const description = args.description ?? DEFAULT_DESCRIPTION;
 const version = args.version ?? DEFAULT_VERSION;
 
 validatePluginId(id);
-if (name.length === 0) {
+if (name.trim().length === 0) {
   fail("--name must not be empty");
 }
 validateDisplayText(name, "--name", MAX_NAME_LEN);
