@@ -5,7 +5,7 @@
 markdownlint_pin := "0.23.2"
 prettier_pin := "3.9.6"
 commitlint_pin := "21.2.2"
-lefthook_pin := "2.1.10"
+lefthook_pin := "2.1.12"
 
 # List available recipes.
 default:
