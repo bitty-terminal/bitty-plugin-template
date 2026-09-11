@@ -121,7 +121,7 @@ const PARAM_REQUIRED_HEADS = new Set([
 const ALLOWED_VERSION_REQ_CHARS = /^[0-9A-Za-z\s.+\-,<>=^~*|&]+$/;
 const PLUGIN_ID_SEGMENT = /^[a-z][a-z0-9_-]*$/;
 const SEMVER =
-  /^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:[-+][0-9A-Za-z.+-_]+)?$/;
+  /^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:[-+][0-9A-Za-z.+\-_]+)?$/;
 
 function fail(message) {
   console.error(`manifest: FAIL ${message}`);
