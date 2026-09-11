@@ -10,6 +10,19 @@ Canonical product and plugin contracts belong to the
 SDK-specific implementation evidence belongs to the
 [bitty-plugin-sdk repository](https://github.com/bitty-terminal/bitty-plugin-sdk).
 
+## See the project workflow (CarryCtx)
+
+CarryCtx engineering state (tasks, sessions, checkpoints) is not cloned. A
+fresh clone restores it from the in-repo `refs/heads/carryctx-snapshots`
+branch:
+
+```sh
+just workflow-import-dry   # fetch + validate the snapshot; no DB writes
+just workflow-import       # initialize CarryCtx state if needed, then import
+```
+
+Then `carryctx stats` reports the restored tasks, sessions, and checkpoints.
+
 ## What this repository provides
 
 - `template/` — the generated plugin tree: `bitty-plugin.toml`,
