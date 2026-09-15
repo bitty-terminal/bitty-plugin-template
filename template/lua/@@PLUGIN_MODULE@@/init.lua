@@ -16,10 +16,14 @@
 
 local M = {}
 
--- Commands are qualified by plugin id; duplicate qualified names are rejected
--- at graph construction time instead of shadowing another plugin.
+-- Command `id` is a plugin-local short segment; the host assembles the
+-- qualified `<plugin-id>:<resource>` name from the `[lazy].commands`
+-- reservation in `bitty-plugin.toml`. Pass the short `id` here, never the
+-- qualified name; duplicate qualified names are rejected at graph
+-- construction time instead of shadowing another plugin.
 bitty.commands.register({
-  name = "@@PLUGIN_ID@@:hello",
+  id = "hello",
+  title = "@@PLUGIN_NAME@@: hello",
   description = "Print a greeting from @@PLUGIN_NAME@@.",
   run = function()
     bitty.notify.show({
