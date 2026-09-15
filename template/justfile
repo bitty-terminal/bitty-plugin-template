@@ -21,5 +21,12 @@ manifest:
 lua:
     bunx --bun luaparse@{{luaparse_pin}} --quiet --file lua/@@PLUGIN_MODULE@@/init.lua
 
+# Fail-closed control for the `lua` gate: the same pinned parser must reject an
+# invalid snippet. `luaparse` exits 0 on empty input, so without this control a
+# recipe that lost its `--file` argument would silently pass rather than parse
+# the generated entry point.
+lua-control:
+    @! bunx --bun luaparse@{{luaparse_pin}} --quiet --code 'local ='
+
 # Aggregate gate run locally and in CI.
-check: manifest lua
+check: manifest lua lua-control
