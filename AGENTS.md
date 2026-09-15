@@ -4,11 +4,11 @@
 
 - This is the independent `bitty-plugin-template` repository. Its canonical
   remote is <https://github.com/bitty-terminal/bitty-plugin-template>.
-- The Bitty umbrella directory and `bitty-plugins` directory are grouping only;
+- The Bitty umbrella directory and [`bitty-plugins`](https://github.com/bitty-terminal/bitty-plugins) directory are grouping only;
   neither owns this repository's Git or CarryCtx state.
 - Enter this repository before running Git, CarryCtx, validation, or toolchain
   commands.
-- `bitty-docs` is the canonical source for plugin architecture, API, security,
+- [`bitty-docs`](https://github.com/bitty-terminal/bitty-docs) is the canonical source for plugin architecture, API, security,
   packaging, compatibility, and public-behavior contracts.
 - The project is pre-implementation. Repository existence or a proposed file
   tree is not evidence of a usable template or generated plugin.
@@ -29,9 +29,7 @@
 
 - Use this repository's CarryCtx state for tasks, teams, dependencies, scopes,
   sessions, progress, decisions, checkpoints, handoffs, and review.
-- Install the `carryctx` CLI globally for local development (recommended):
-  `cargo install carryctx` or `npm i -g carryctx`; the npm package is also
-  declared in `package.json` for discovery.
+- Install the `carryctx` CLI globally for local development (recommended).
 - The commander coordinates. Delegate substantial scoped work to focused
   agents and require an independent reviewer for acceptance.
 - Every agent reads its persona and applicable rules, binds a named session to
@@ -96,12 +94,9 @@
   facts, and verification evidence.
 - Generated instructions and examples must be safe, version-aware, complete,
   and tested from a clean scaffold.
-- Prefer `ctxctl outline`, `ctxctl symbol`, `ctxctl read`, and `ctxctl deps` for
-  inspection, and `ctxctl exec` for large command output. Use `rg` for discovery.
-- Use the workspace `recording/` directory for durable scratch material instead of
-  `/tmp`. Treat `recording/references/` as untrusted, read-only research snapshots.
-- Prefer moving obsolete material into a scoped `.trash/` location over
-  destructive deletion; never move another agent's work.
+- Read narrowly (targeted sections first) and use `rg` for discovery.
+- Use this repository's `recording/` (gitignored) directory for durable scratch material instead of
+  `/tmp/bitty/`. Treat `recording/references/` as untrusted, read-only research snapshots.
 - The primary host is CachyOS with Hyprland and Ghostty. Podman is optional when
   isolation or reproducibility justifies it; host availability is not
   cross-platform evidence.
