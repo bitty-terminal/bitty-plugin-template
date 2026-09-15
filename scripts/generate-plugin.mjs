@@ -124,23 +124,28 @@ function validatePluginId(id) {
   }
 }
 
-/** Validate SemVer 2 with the host's pre-release/build character set. */
+/**
+ * SemVer 2 pattern, mirrored from `versionProblem`/`SEMVER_2` in
+ * `bitty-plugin-sdk/src/manifest.ts`, the lint contract the generated manifest
+ * must satisfy. The SDK has no consumable install path yet (CTX-0017), so the
+ * generator cannot import it and keeps a synchronized copy instead. Stay
+ * fail-closed: boundary versions the SDK rejects (empty pre-release/build
+ * identifiers, underscores, missing segments, leading zeros) are rejected here
+ * before anything is written. Keep this identical to the SDK pattern until the
+ * lint CLI can replace both.
+ */
+const SEMVER_2 =
+  /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/;
+
+/** Validate a concrete SemVer 2 version against the SDK lint contract. */
 function validateVersion(version) {
   if (version.length > MAX_VERSION_LEN) {
     fail(`--version exceeds ${MAX_VERSION_LEN} characters`);
   }
-  const core = version.split(/[-+]/)[0];
-  const parts = core.split(".");
-  if (parts.length !== 3) {
-    fail("--version must be SemVer X.Y.Z");
-  }
-  for (const part of parts) {
-    if (!/^(0|[1-9][0-9]*)$/.test(part)) {
-      fail("--version numeric components must be digits without leading zeros");
-    }
-  }
-  if (!/^[0-9A-Za-z.+\-_]+$/.test(version)) {
-    fail("--version contains characters outside [0-9A-Za-z.+-_]");
+  if (!SEMVER_2.test(version)) {
+    fail(
+      "--version must be SemVer 2 (MAJOR.MINOR.PATCH with optional -prerelease/+build)",
+    );
   }
 }
 

@@ -9,8 +9,9 @@ and a CI quality gate.
 
 > Status: pre-implementation. The Bitty plugin host and the accepted Plugin
 > API v1 bindings are still landing. `just check` validates the manifest and
-> parses the Lua entry point; the manifest check uses a transitional local
-> validator until `bitty-plugin-lint` is published by
+> parses the Lua entry point, with a fail-closed parser control so the parse
+> cannot silently pass; the manifest check uses a transitional local validator
+> until `bitty-plugin-lint` is published by
 > [bitty-plugin-sdk](https://github.com/bitty-terminal/bitty-plugin-sdk)
 > (R-SDK-2). The `lua/<module>/` layout follows the candidate plugin-repository
 > structure in bitty-docs; confirm it against the host loader contract before
@@ -37,7 +38,10 @@ just check
 `just manifest` validates `bitty-plugin.toml` against the accepted contract in
 bitty-docs `docs/specifications/plugin-platform-rfc.md` (file name, identity,
 compatibility, capability closed set, lazy triggers, hard limits). `just lua`
-parses the entry point with a pinned Lua parser.
+runs the pinned `luaparse` 0.3.1 CLI over the entry point; `just lua-control`
+feeds the same parser an invalid snippet and requires rejection, so a recipe
+that stopped reading the entry point cannot pass silently. `just check` runs
+all three.
 
 ## Capabilities
 

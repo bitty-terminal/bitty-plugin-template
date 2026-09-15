@@ -15,3 +15,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Deterministic generator `scripts/generate-plugin.mjs` with validated inputs
   and fail-closed target handling.
 - `just clean-generation` evidence gate and `just fmt`/`fmt-files` recipes.
+
+### Fixed
+
+- Verified the template `just lua` gate against the pinned `luaparse` 0.3.1
+  CLI and added a fail-closed `lua-control` self-check, so a generated
+  repository's `just check` proves the parser rejects invalid Lua instead of
+  passing silently on empty input (P2-9).
+- Aligned `scripts/generate-plugin.mjs` `--version` validation with the SDK
+  SemVer 2 pattern (`bitty-plugin-sdk/src/manifest.ts`), rejecting the empty
+  and underscore-bearing pre-release/build suffixes the SDK lint rejects
+  (P2-10).
