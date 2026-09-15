@@ -1,4 +1,5 @@
 .carryctx/config.local.toml
 .worktrees/
 node_modules/
+dist/
 tmp/
