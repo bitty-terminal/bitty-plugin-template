@@ -1,0 +1,15 @@
+# bitty-plugin-template: workspace identity descriptor (kind/lang/role mirror workspace.toml).
+[repo]
+name = "bitty-plugin-template"
+kind = "sdk"
+lang = "ts/lua"
+role = "scaffolding template for new plugins"
+owner = "TBD"
+docs = "bitty-docs"
+
+[contracts.provides]
+plugin-scaffold = "template/" # new-plugin starting point incl. bitty-plugin.toml
+plugin-generator = "scripts/generate-plugin.mjs" # deterministic scaffolding generator
+
+[contracts.consumes]
+manifest-contract = "bitty-docs: docs/specifications/plugin-platform-rfc.md" # accepted v1 contract OQ-012
