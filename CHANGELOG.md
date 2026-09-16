@@ -18,6 +18,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Re-align generated Markdown tables after placeholder substitution in
+  `scripts/generate-plugin.mjs`, so the generated README stays valid for
+  Markdownlint MD060 (`table-column-style`) at any plugin module-name length.
+  Re-alignment leaves fenced and indented code blocks byte-identical, requires
+  the delimiter cell count to match the header, and uses a grapheme/East-Asian
+  width model that mirrors the linter for ASCII, CJK, and emoji content
+  (including ZWJ sequences; some exotic spacing-mark clusters may differ).
+  `just check` now runs `scripts/generate-plugin.test.mjs`, and
+  `just clean-generation` lints the generated README (#53).
 - Verified the template `just lua` gate against the pinned `luaparse` 0.3.1
   CLI and added a fail-closed `lua-control` self-check, so a generated
   repository's `just check` proves the parser rejects invalid Lua instead of

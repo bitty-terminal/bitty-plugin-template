@@ -52,15 +52,19 @@ bun scripts/generate-plugin.mjs \
 ```
 
 The generator validates the plugin id, display name, description, and SemVer
-version, copies `template/` verbatim, substitutes every placeholder
-deterministically, and fails if a placeholder remains.
+version, substitutes every placeholder deterministically, re-aligns generated
+Markdown tables so the output stays Markdownlint-clean, and fails if a
+placeholder remains.
 
 ## Clean-generation evidence
 
 `just clean-generation` is the repeatable evidence gate: it generates a fresh
-tree from template source and runs that tree's documented checks (manifest
-validation plus a Lua parse) without hidden local state. CI runs it after
-`just check`.
+tree from template source, runs that tree's documented checks (manifest
+validation plus a Lua parse), and lints the generated README with this
+repository's Markdown rules, all without hidden local state. The generator
+re-aligns Markdown tables after substitution so the generated README stays
+valid for Markdownlint's table rule (MD060) at any placeholder length; fenced
+and indented code blocks are left byte-identical. CI runs it after `just check`.
 
 ## Contract dependencies
 
@@ -85,7 +89,7 @@ never publish from pull-request code.
 ## Repository checks
 
 ```sh
-just check            # markdownlint + prettier
+just check            # markdownlint + prettier + generator tests
 just clean-generation # generate a plugin and run its gates
 ```
 
