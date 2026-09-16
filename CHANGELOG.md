@@ -20,6 +20,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Repository-metadata refresh: `packageManager` pins `bun@1.4.2`, the
+  `carryctx` devDependency moves to 0.11.5, a conservative `.gitattributes`
+  baseline normalizes text files to LF, and CONTRIBUTING/SECURITY document the
+  contributor-branch convention and the canonical security baseline
+  (`CTX-0033`).
 - Switch generated repositories to the authoritative `bitty-plugin-lint`
   (bitty-plugin-sdk, R-SDK-2) for manifest validation (`CTX-0017`). The
   generator substitutes the commit-pinned SDK ref (`PLUGIN_SDK_REF`, exposed as
