@@ -8,6 +8,7 @@ import {
 } from "./generate-plugin.mjs";
 import {
   PLACEHOLDER,
+  RESOLVE_COMMAND,
   applyPin,
   lockfileTupleMatches,
   restorePlaceholder,
@@ -229,6 +230,12 @@ describe("SDK lint pin (CTX-0017)", () => {
     expect(lockfileTupleMatches(resolved.replaceAll(short, "deadbee"))).toBe(
       false,
     );
+  });
+
+  test("refresh-sdk-pin re-resolves the git dependency", () => {
+    // Regression guard for PX-0103: a bare `bun install` reuses the stale
+    // git-lockfile entry, so the re-resolving subcommand must stay `update`.
+    expect(RESOLVE_COMMAND).toEqual(["update", "bitty-plugin-sdk"]);
   });
 
   test("refresh-sdk-pin round-trips the placeholder", () => {

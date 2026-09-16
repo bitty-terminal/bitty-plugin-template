@@ -41,6 +41,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Re-resolve the SDK lockfile on a pin bump (`CTX-0017`, review finding
+  `PX-0103`): `scripts/refresh-sdk-pin.mjs` now runs
+  `bun update bitty-plugin-sdk` instead of `bun install`. Bun reuses an existing
+  git-dependency lockfile entry, so a plain install left the resolved short
+  SHA, cache key, and integrity hash stale while exiting 0. Add
+  `just verify-sdk-pin` / `scripts/verify-sdk-pin-refresh.mjs`, a network-only
+  end-to-end check (skips offline) that bumps a scratch copy to another SDK
+  commit and asserts the tuple moves.
 - Guard the SDK pin invariant (`CTX-0017`, review finding `PX-0101`): `bun test`
   now asserts that `template/bun.lock` resolves `PLUGIN_SDK_REF` (matching short
   SHA and cache-key suffix), so bumping the constant without regenerating the

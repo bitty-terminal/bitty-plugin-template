@@ -84,11 +84,14 @@ and indented code blocks are left byte-identical. CI runs it after `just check`.
     `PLUGIN_SDK_REF`, run `just refresh-sdk-pin` (or
     `bun scripts/refresh-sdk-pin.mjs`), then re-run `just clean-generation` in
     the same change. The helper swaps the concrete SHA into
-    `template/package.json` and `template/bun.lock`, runs `bun install` to
-    update the resolved short SHA, cache key, and integrity hash, restores the
-    `@@PLUGIN_SDK_REF@@` placeholder, and verifies the tuple. `bun test` guards
-    the same invariant offline, so a constant bump without lockfile
-    regeneration fails `just check`. Do not bump the pin in unrelated tasks.
+    `template/package.json` and `template/bun.lock`, re-resolves the git
+    dependency with `bun update bitty-plugin-sdk` (a plain `bun install` reuses
+    the stale lockfile entry and would leave the resolved short SHA, cache key,
+    and integrity hash unchanged), restores the `@@PLUGIN_SDK_REF@@`
+    placeholder, and verifies the tuple. `bun test` guards the same invariant
+    offline, so a constant bump without lockfile regeneration fails
+    `just check`; `just verify-sdk-pin` is the network-only end-to-end
+    re-resolution check. Do not bump the pin in unrelated tasks.
 - Plugin API bindings in `init.lua` follow the accepted v1 surface sketch;
   `bitty.d.lua` (R-SDK-1) becomes authoritative.
 

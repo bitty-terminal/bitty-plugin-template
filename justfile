@@ -56,12 +56,21 @@ check: lint fmt-check test
 
 # Regenerate template/bun.lock for the pinned bitty-plugin-lint commit
 # (CTX-0017). Run after every PLUGIN_SDK_REF bump: the script substitutes the
-# concrete SHA into template/package.json and template/bun.lock, resolves the
-# git dependency with `bun install`, restores the @@PLUGIN_SDK_REF@@ placeholder,
-# and verifies the resolved tuple matches the pin. Network required; `bun test`
-# fails on the same drift and is the offline guard.
+# concrete SHA into template/package.json and template/bun.lock, re-resolves
+# the git dependency with `bun update bitty-plugin-sdk` (a bare `bun install`
+# would reuse the stale lockfile entry), restores the @@PLUGIN_SDK_REF@@
+# placeholder, and verifies the resolved tuple matches the pin. Network
+# required; `bun test` fails on the same drift and is the offline guard.
 refresh-sdk-pin:
     bun scripts/refresh-sdk-pin.mjs
+
+# End-to-end re-resolution check for PX-0103: on a scratch copy, bump the pin to
+# a different SDK commit, run `refresh-sdk-pin`, and prove the lockfile tuple
+# moves to the new short SHA and the placeholder is restored. Network required;
+# prints SKIP and exits 0 when the SDK remote is unreachable. Not part of
+# `just check`.
+verify-sdk-pin:
+    bun scripts/verify-sdk-pin-refresh.mjs
 
 # Generate a fresh example plugin into an ignored scratch dir, install its
 # pinned dependencies, and run the generated repository's own gates plus this
