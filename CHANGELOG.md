@@ -18,8 +18,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Adopt the canonical `.editorconfig` baseline (`CTX-0023` slice); the
   repository-metadata baseline guide and ADR-0011 remain Proposed.
 
+### Changed
+
+- Switch generated repositories to the authoritative `bitty-plugin-lint`
+  (bitty-plugin-sdk, R-SDK-2) for manifest validation (`CTX-0017`). The
+  generator substitutes the commit-pinned SDK ref (`PLUGIN_SDK_REF`, exposed as
+  the `@@PLUGIN_SDK_REF@@` placeholder) into the generated `package.json` and
+  `bun.lock`; the generated `justfile` gains `just install`
+  (`bun install --frozen-lockfile`) and `just manifest` runs
+  `bun run bitty-plugin-lint bitty-plugin.toml`. Gates run offline after the
+  one-time install, and `just check` fails closed when the dependency is
+  absent. The template CI workflow installs the pinned dependencies before the
+  gates. `just refresh-sdk-pin` / `bun scripts/refresh-sdk-pin.mjs`
+  deterministically regenerates `template/bun.lock` when the pin moves.
+
+### Removed
+
+- Remove the vendored transitional `template/scripts/validate-manifest.mjs`.
+  The SDK linter is now the single source of manifest validation, closing the
+  recorded divergence risk `PX-0061`/`PX-0062` (parameterized filesystem
+  capability keys).
+
 ### Fixed
 
+- Guard the SDK pin invariant (`CTX-0017`, review finding `PX-0101`): `bun test`
+  now asserts that `template/bun.lock` resolves `PLUGIN_SDK_REF` (matching short
+  SHA and cache-key suffix), so bumping the constant without regenerating the
+  lockfile fails `just check` instead of silently shipping a stale SDK. Add
+  `scripts/refresh-sdk-pin.mjs` and `just refresh-sdk-pin` for deterministic
+  lockfile regeneration.
+- Ignore the gitignored `recording/` scratch directory in Markdown lint, so
+  durable generated evidence (which contains its own `node_modules`) cannot
+  fail `just check` on files outside the tracked tree.
 - Re-align generated Markdown tables after placeholder substitution in
   `scripts/generate-plugin.mjs`, so the generated README stays valid for
   Markdownlint MD060 (`table-column-style`) at any plugin module-name length.

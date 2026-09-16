@@ -54,16 +54,27 @@ test:
 # Aggregate gate run locally and in CI.
 check: lint fmt-check test
 
-# Generate a fresh example plugin into an ignored scratch dir and run the
-# generated repository's own gates plus this repository's Markdown rules over
-# the generated README (clean-generation evidence). The `:` prefix marks the
-# README as a literal path so markdownlint still checks it even though `tmp` is
-# in the shared ignore list.
+# Regenerate template/bun.lock for the pinned bitty-plugin-lint commit
+# (CTX-0017). Run after every PLUGIN_SDK_REF bump: the script substitutes the
+# concrete SHA into template/package.json and template/bun.lock, resolves the
+# git dependency with `bun install`, restores the @@PLUGIN_SDK_REF@@ placeholder,
+# and verifies the resolved tuple matches the pin. Network required; `bun test`
+# fails on the same drift and is the offline guard.
+refresh-sdk-pin:
+    bun scripts/refresh-sdk-pin.mjs
+
+# Generate a fresh example plugin into an ignored scratch dir, install its
+# pinned dependencies, and run the generated repository's own gates plus this
+# repository's Markdown rules over the generated README (clean-generation
+# evidence). The install materializes the commit-pinned `bitty-plugin-lint`
+# that `just manifest` runs, matching the generated CI workflow. The `:` prefix
+# marks the README as a literal path so markdownlint still checks it even
+# though `tmp` is in the shared ignore list.
 clean-generation:
     @rm -rf tmp/clean-generation
     @mkdir -p tmp/clean-generation
     bun scripts/generate-plugin.mjs --id example.hello --name "Hello Plugin" --description "Minimal runnable Bitty plugin example." --version 0.1.0 --dir tmp/clean-generation/hello-plugin
-    cd tmp/clean-generation/hello-plugin && just check
+    cd tmp/clean-generation/hello-plugin && bun install --frozen-lockfile && just check
     bunx --bun markdownlint-cli2@{{markdownlint_pin}} --no-globs ':tmp/clean-generation/hello-plugin/README.md'
 
 # Publish a redacted CarryCtx snapshot inside this repo (commander merge

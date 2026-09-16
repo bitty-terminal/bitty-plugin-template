@@ -1,6 +1,24 @@
 import { describe, expect, test } from "bun:test";
+import { existsSync, readFileSync } from "node:fs";
 
-import { alignMarkdownTables, displayWidth } from "./generate-plugin.mjs";
+import {
+  PLUGIN_SDK_REF,
+  alignMarkdownTables,
+  displayWidth,
+} from "./generate-plugin.mjs";
+import {
+  PLACEHOLDER,
+  applyPin,
+  lockfileTupleMatches,
+  restorePlaceholder,
+} from "./refresh-sdk-pin.mjs";
+
+/** Read a template file relative to this test. */
+function templateFile(relativePath) {
+  return readFileSync(new URL(`../template/${relativePath}`, import.meta.url), {
+    encoding: "utf8",
+  });
+}
 
 /** Join table rows into a document with a trailing newline. */
 function lines(...rows) {
@@ -180,5 +198,53 @@ describe("displayWidth", () => {
 
   test("counts a mixed string by cluster", () => {
     expect(displayWidth(`a漢${ZWJ_FAMILY}b`)).toBe(1 + 2 + 2 + 1);
+  });
+});
+
+describe("SDK lint pin (CTX-0017)", () => {
+  test("PLUGIN_SDK_REF is a full 40-character commit SHA", () => {
+    expect(PLUGIN_SDK_REF).toMatch(/^[0-9a-f]{40}$/);
+  });
+
+  test("template package.json and lockfile carry the SDK ref placeholder", () => {
+    const manifest = templateFile("package.json");
+    const lockfile = templateFile("bun.lock");
+    expect(manifest).toContain(
+      '"bitty-plugin-sdk": "github:bitty-terminal/bitty-plugin-sdk#@@PLUGIN_SDK_REF@@"',
+    );
+    expect(lockfile).toContain("#@@PLUGIN_SDK_REF@@");
+    expect(manifest).toContain('"luaparse": "0.3.1"');
+  });
+
+  test("template lockfile resolves the pinned SDK commit", () => {
+    expect(lockfileTupleMatches(templateFile("bun.lock"))).toBe(true);
+  });
+
+  test("lockfile guard rejects a stale resolved commit", () => {
+    const short = PLUGIN_SDK_REF.slice(0, 7);
+    const resolved =
+      `bitty-plugin-sdk@github:bitty-terminal/bitty-plugin-sdk#${short}` +
+      ` bitty-terminal-bitty-plugin-sdk-${short}`;
+    expect(lockfileTupleMatches(resolved)).toBe(true);
+    expect(lockfileTupleMatches(resolved.replaceAll(short, "deadbee"))).toBe(
+      false,
+    );
+  });
+
+  test("refresh-sdk-pin round-trips the placeholder", () => {
+    const manifest = templateFile("package.json");
+    const lockfile = templateFile("bun.lock");
+    expect(applyPin(manifest)).toContain(PLUGIN_SDK_REF);
+    expect(applyPin(manifest)).not.toContain(PLACEHOLDER);
+    expect(restorePlaceholder(applyPin(manifest))).toBe(manifest);
+    expect(restorePlaceholder(applyPin(lockfile))).toBe(lockfile);
+  });
+
+  test("the transitional manifest validator is gone", () => {
+    expect(
+      existsSync(
+        new URL("../template/scripts/validate-manifest.mjs", import.meta.url),
+      ),
+    ).toBe(false);
   });
 });
