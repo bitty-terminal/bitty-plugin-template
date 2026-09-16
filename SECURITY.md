@@ -1,9 +1,9 @@
 # Security Policy
 
-This document is proposed repository governance scaffolding. It describes how
-security reports for this repository are handled. Normative product security
-requirements live in the canonical `bitty-docs` security corpus and take
-precedence over anything stated here.
+This document describes how security reports for the `bitty-plugin-template`
+repository are handled. Normative product security requirements live in the
+canonical `bitty-docs` security corpus and take precedence over anything stated
+here.
 
 ## Supported Versions
 
@@ -49,3 +49,9 @@ accepts them:
   open.
 - Publish the advisory after a fixed version is available, or after 90 days if
   no fix is feasible, whichever comes first.
+
+## Scope Note
+
+The template ships no credentials, no install-time execution, and no ambient OS
+authority; generated output must preserve least privilege and explicit
+capabilities. Any deviation is a security-relevant defect.
