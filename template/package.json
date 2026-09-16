@@ -1,0 +1,11 @@
+{
+  "name": "@@PLUGIN_ID@@",
+  "version": "@@PLUGIN_VERSION@@",
+  "private": true,
+  "type": "module",
+  "description": "@@PLUGIN_DESCRIPTION@@",
+  "devDependencies": {
+    "bitty-plugin-sdk": "github:bitty-terminal/bitty-plugin-sdk#@@PLUGIN_SDK_REF@@",
+    "luaparse": "0.3.1"
+  }
+}

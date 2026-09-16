@@ -15,6 +15,10 @@
  *
  * Placeholder tokens use the `@@PLUGIN_*@@` form because Markdown formatters
  * rewrite underscore emphasis (`__NAME__`), which would corrupt substitutions.
+ * `@@PLUGIN_SDK_REF@@` carries the pinned `bitty-plugin-lint` (bitty-plugin-sdk)
+ * commit from `PLUGIN_SDK_REF` into the generated `package.json` and `bun.lock`,
+ * so generated repositories lint their manifest with the authoritative SDK
+ * instead of a vendored validator (CTX-0017).
  *
  * Generated Markdown tables are re-aligned after substitution (see
  * `alignMarkdownTables`): a shorter or longer placeholder value would otherwise
@@ -51,6 +55,17 @@ const RESERVED_PLACEHOLDER_PREFIX = "@@PLUGIN_";
 const DEFAULT_DESCRIPTION =
   "Minimal Bitty plugin generated from bitty-plugin-template.";
 const DEFAULT_VERSION = "0.1.0";
+
+/**
+ * Pinned `bitty-plugin-lint` (bitty-plugin-sdk) commit, substituted for the
+ * `@@PLUGIN_SDK_REF@@` token in the generated `package.json` and `bun.lock`.
+ * Generated repositories install the authoritative manifest linter from this
+ * commit rather than vendoring a re-implementation (CTX-0017). Maintenance:
+ * when the SDK manifest contract moves, bump this SHA and regenerate
+ * `template/bun.lock` in the same change (the lockfile embeds the short SHA and
+ * cache key derived from it), then run `just clean-generation`.
+ */
+export const PLUGIN_SDK_REF = "c3fa9b0574c684eebb38b01dddfdf504d183cc20";
 
 const USAGE =
   "usage: bun scripts/generate-plugin.mjs --id <owner.name> " +
@@ -137,12 +152,13 @@ function validatePluginId(id) {
 /**
  * SemVer 2 pattern, mirrored from `versionProblem`/`SEMVER_2` in
  * `bitty-plugin-sdk/src/manifest.ts`, the lint contract the generated manifest
- * must satisfy. The SDK has no consumable install path yet (CTX-0017), so the
- * generator cannot import it and keeps a synchronized copy instead. Stay
- * fail-closed: boundary versions the SDK rejects (empty pre-release/build
- * identifiers, underscores, missing segments, leading zeros) are rejected here
- * before anything is written. Keep this identical to the SDK pattern until the
- * lint CLI can replace both.
+ * must satisfy. The SDK linter is installed into generated repositories (not
+ * into this generator), so input validation keeps a synchronized copy of the
+ * pattern. Stay fail-closed: boundary versions the SDK rejects (empty
+ * pre-release/build identifiers, underscores, missing segments, leading zeros)
+ * are rejected here before anything is written; the generated repository then
+ * re-validates the manifest with the pinned SDK lint. Keep this identical to
+ * the SDK pattern.
  */
 const SEMVER_2 =
   /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/;
@@ -651,6 +667,7 @@ function main() {
     "@@PLUGIN_VERSION@@": version,
     "@@PLUGIN_DESCRIPTION@@": description,
     "@@PLUGIN_MODULE@@": moduleName,
+    "@@PLUGIN_SDK_REF@@": PLUGIN_SDK_REF,
   };
   walkFiles(target, (file) => replacePlaceholders(file, tokens));
 

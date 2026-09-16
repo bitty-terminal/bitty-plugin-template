@@ -33,8 +33,8 @@ Then `carryctx stats` reports the restored tasks, sessions, and checkpoints.
 ## What this repository provides
 
 - `template/` — the generated plugin tree: `bitty-plugin.toml`,
-  `lua/<module>/init.lua`, `scripts/validate-manifest.mjs`, `justfile`,
-  README, and a CI workflow.
+  `lua/<module>/init.lua`, `package.json` and `bun.lock` (the commit-pinned
+  authoritative `bitty-plugin-lint`), `justfile`, README, and a CI workflow.
 - `scripts/generate-plugin.mjs` — deterministic generator with validated
   inputs that refuses to overwrite an existing target.
 - `just clean-generation` — generates an example plugin into an ignored
@@ -59,9 +59,11 @@ placeholder remains.
 ## Clean-generation evidence
 
 `just clean-generation` is the repeatable evidence gate: it generates a fresh
-tree from template source, runs that tree's documented checks (manifest
-validation plus a Lua parse), and lints the generated README with this
-repository's Markdown rules, all without hidden local state. The generator
+tree from template source, installs its pinned dependencies
+(`bun install --frozen-lockfile`), runs that tree's documented checks
+(authoritative SDK manifest lint plus a Lua parse), and lints the generated
+README with this repository's Markdown rules, all without hidden local state.
+The generator
 re-aligns Markdown tables after substitution so the generated README stays
 valid for Markdownlint's table rule (MD060) at any placeholder length; fenced
 and indented code blocks are left byte-identical. CI runs it after `just check`.
@@ -71,10 +73,25 @@ and indented code blocks are left byte-identical. CI runs it after `just check`.
 - Manifest file name, schema, hard limits, and capability identifiers come
   from the accepted plugin-platform RFC in `bitty-docs`. The template never
   redefines them.
-- `bitty-plugin-lint` (bitty-plugin-sdk, R-SDK-2) is not yet published. Until
-  it is, generated repositories use `scripts/validate-manifest.mjs`, a
-  fail-closed transitional check that mirrors implemented host and package
-  validation; it is replaced when the SDK CLI lands.
+- `bitty-plugin-lint` (bitty-plugin-sdk, R-SDK-2) is the authoritative manifest
+  validator (CTX-0017 resolved). Generated repositories install it from a
+  pinned `bitty-plugin-sdk` commit declared in `package.json` and locked in
+  `bun.lock`; `just manifest` runs it and no longer vendors a transitional
+  re-implementation. The pin is a single named constant, `PLUGIN_SDK_REF` in
+  `scripts/generate-plugin.mjs`, substituted into the generated tree as
+  `@@PLUGIN_SDK_REF@@`.
+  - **Maintenance:** when the SDK manifest contract moves, bump
+    `PLUGIN_SDK_REF`, run `just refresh-sdk-pin` (or
+    `bun scripts/refresh-sdk-pin.mjs`), then re-run `just clean-generation` in
+    the same change. The helper swaps the concrete SHA into
+    `template/package.json` and `template/bun.lock`, re-resolves the git
+    dependency with `bun update bitty-plugin-sdk` (a plain `bun install` reuses
+    the stale lockfile entry and would leave the resolved short SHA, cache key,
+    and integrity hash unchanged), restores the `@@PLUGIN_SDK_REF@@`
+    placeholder, and verifies the tuple. `bun test` guards the same invariant
+    offline, so a constant bump without lockfile regeneration fails
+    `just check`; `just verify-sdk-pin` is the network-only end-to-end
+    re-resolution check. Do not bump the pin in unrelated tasks.
 - Plugin API bindings in `init.lua` follow the accepted v1 surface sketch;
   `bitty.d.lua` (R-SDK-1) becomes authoritative.
 
