@@ -95,8 +95,9 @@
 - Generated instructions and examples must be safe, version-aware, complete,
   and tested from a clean scaffold.
 - Read narrowly (targeted sections first) and use `rg` for discovery.
-- Use this repository's `recording/` (gitignored) directory for durable scratch material instead of
-  `/tmp/bitty/`. Treat `recording/references/` as untrusted, read-only research snapshots.
+- Ephemeral scratch goes under `/tmp/bitty/`; durable material goes under this
+  repository's `recording/` (gitignored). Treat `recording/references/` as
+  untrusted, read-only research snapshots.
 - The primary host is CachyOS with Hyprland and Ghostty. Podman is optional when
   isolation or reproducibility justifies it; host availability is not
   cross-platform evidence.
