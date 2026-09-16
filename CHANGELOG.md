@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Deterministic generator `scripts/generate-plugin.mjs` with validated inputs
   and fail-closed target handling.
 - `just clean-generation` evidence gate and `just fmt`/`fmt-files` recipes.
+- Adopt the canonical `.editorconfig` baseline (`CTX-0023` slice); the
+  repository-metadata baseline guide and ADR-0011 remain Proposed.
 
 ### Fixed
 
