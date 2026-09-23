@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- R-SDK-2 drift rule for the template itself (`CTX-0036`): new
+  `scripts/check-template-sdk-sync.mjs` with `just template-sdk-sync` (part of
+  `just check`, offline). It fails closed whenever the scaffold drifts from
+  the frozen SDK generation pipeline (bitty-plugin-sdk #108): the SDK pin,
+  the resolved lockfile tuple, the pending-host flags in `init.lua`
+  (`keymaps`/`tasks` WIRED, `services`/`env` DEFERRED with typed
+  `E_NOT_IMPLEMENTED`, `process.spawn` v1-OUT), the least-privilege defaults
+  (no install-time execution, no ambient authority, no allow-all
+  capabilities), and the read-only SHA-pinned generated CI. `bun test` covers
+  the same agreement plus the fail-closed behavior on a missing tree.
 - Minimal runnable plugin template under `template/`: accepted-contract
   `bitty-plugin.toml`, `lua/<module>/init.lua` entry point, generated CI
   workflow, generated README, and a transitional manifest validator.
@@ -20,6 +30,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Regenerate the template scaffold from the frozen SDK generation pipeline
+  (`CTX-0036`, SDK #108, host parity from bitty #1303): bump `PLUGIN_SDK_REF`
+  to the frozen commit and re-resolve `template/bun.lock` for it; `init.lua`
+  follows the frozen v1 surface with WIRED `keymaps`/`tasks` follow-ups and
+  commented-out DEFERRED `services`/`env` typed stubs (`E_NOT_IMPLEMENTED`)
+  plus the `process.spawn` v1-OUT exclusion; the manifest, generated README,
+  and contract notes record the same freeze. Least-privilege defaults,
+  no install-time execution, and no ambient authority are unchanged.
 - Repository-metadata refresh: `packageManager` pins `bun@1.4.2`, the
   `carryctx` devDependency moves to 0.11.5, a conservative `.gitattributes`
   baseline normalizes text files to LF, and CONTRIBUTING/SECURITY document the

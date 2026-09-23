@@ -51,8 +51,16 @@ hooks-uninstall:
 test:
     bun test
 
+# Fail when the template scaffold drifts from the frozen SDK generation
+# pipeline (CTX-0036, R-SDK-2 drift rule): the SDK pin, the resolved lockfile
+# tuple, the pending-host flags (WIRED keymaps/tasks, DEFERRED services/env,
+# spawn v1-OUT), and the least-privilege defaults. Offline; part of
+# `just check`.
+template-sdk-sync:
+    bun scripts/check-template-sdk-sync.mjs
+
 # Aggregate gate run locally and in CI.
-check: lint fmt-check test
+check: lint fmt-check test template-sdk-sync
 
 # Regenerate template/bun.lock for the pinned bitty-plugin-lint commit
 # (CTX-0017). Run after every PLUGIN_SDK_REF bump: the script substitutes the
