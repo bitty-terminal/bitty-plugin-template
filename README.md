@@ -79,7 +79,10 @@ and indented code blocks are left byte-identical. CI runs it after `just check`.
   `bun.lock`; `just manifest` runs it and no longer vendors a transitional
   re-implementation. The pin is a single named constant, `PLUGIN_SDK_REF` in
   `scripts/generate-plugin.mjs`, substituted into the generated tree as
-  `@@PLUGIN_SDK_REF@@`.
+  `@@PLUGIN_SDK_REF@@`. It tracks the frozen generation pipeline
+  (bitty-plugin-sdk #108, host parity from bitty #1303: `keymaps`/`tasks`
+  WIRED, `services`/`env` DEFERRED with typed `E_NOT_IMPLEMENTED`,
+  `process.spawn` v1-OUT).
   - **Maintenance:** when the SDK manifest contract moves, bump
     `PLUGIN_SDK_REF`, run `just refresh-sdk-pin` (or
     `bun scripts/refresh-sdk-pin.mjs`), then re-run `just clean-generation` in
@@ -92,8 +95,15 @@ and indented code blocks are left byte-identical. CI runs it after `just check`.
     offline, so a constant bump without lockfile regeneration fails
     `just check`; `just verify-sdk-pin` is the network-only end-to-end
     re-resolution check. Do not bump the pin in unrelated tasks.
-- Plugin API bindings in `init.lua` follow the accepted v1 surface sketch;
-  `bitty.d.lua` (R-SDK-1) becomes authoritative.
+- `just template-sdk-sync` is the R-SDK-2 drift rule for the template itself
+  (`scripts/check-template-sdk-sync.mjs`, part of `just check`): it fails
+  closed whenever the scaffold drifts from the frozen pipeline — the SDK pin,
+  the resolved lockfile tuple, the pending-host flags in `init.lua`, the
+  least-privilege defaults, and the read-only SHA-pinned CI. It runs offline.
+- Plugin API bindings in `init.lua` follow the frozen v1 surface; the
+  authoritative Lua bindings are the SDK `bitty.d.lua` (R-SDK-1). Deferred
+  namespaces (`services`, `env`) stay commented-out typed stubs that fail
+  closed with `E_NOT_IMPLEMENTED` on the current host.
 
 ## Safety boundary
 

@@ -1,11 +1,18 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
 import {
   PLUGIN_SDK_REF,
   alignMarkdownTables,
   displayWidth,
 } from "./generate-plugin.mjs";
+import {
+  DEFERRED_FUNCTIONS,
+  FROZEN_SDK_REF,
+  WIRED_NAMESPACES,
+  checkTree,
+} from "./check-template-sdk-sync.mjs";
 import {
   PLACEHOLDER,
   RESOLVE_COMMAND,
@@ -253,5 +260,35 @@ describe("SDK lint pin (CTX-0017)", () => {
         new URL("../template/scripts/validate-manifest.mjs", import.meta.url),
       ),
     ).toBe(false);
+  });
+});
+
+describe("Template/SDK sync (CTX-0036)", () => {
+  test("PLUGIN_SDK_REF tracks the frozen generation pipeline", () => {
+    expect(FROZEN_SDK_REF).toMatch(/^[0-9a-f]{40}$/);
+    expect(PLUGIN_SDK_REF).toBe(FROZEN_SDK_REF);
+  });
+
+  test("the frozen pipeline covers 4 deferred stubs and 2 wired namespaces", () => {
+    expect([...DEFERRED_FUNCTIONS].sort()).toEqual([
+      "env.get",
+      "env.has",
+      "services.get",
+      "services.provide",
+    ]);
+    expect([...WIRED_NAMESPACES].sort()).toEqual(["keymaps", "tasks"]);
+  });
+
+  test("checkTree agrees with this repository (offline)", () => {
+    const root = fileURLToPath(new URL("..", import.meta.url));
+    expect(checkTree(root)).toEqual([]);
+  });
+
+  test("checkTree fails closed on a missing tree instead of skipping", () => {
+    const problems = checkTree(
+      fileURLToPath(new URL("../does-not-exist", import.meta.url)),
+    );
+    expect(problems.length).toBeGreaterThan(0);
+    expect(problems.join("\n")).toContain("missing");
   });
 });
