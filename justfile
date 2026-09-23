@@ -72,6 +72,16 @@ refresh-sdk-pin:
 verify-sdk-pin:
     bun scripts/verify-sdk-pin-refresh.mjs
 
+# Verify a generated package against the host discovery and activation
+# contract (PLUG-SDK-001, issue #67): discovery finds `bitty-plugin.toml` at
+# the package root and resolves the `lua/` module root, activation resolves
+# the fixed `init.lua` entry point. The two phases are checked separately
+# because discovery is not activation evidence. The host resolves the nested
+# `lua/<module>/init.lua` shape directly, so no package-root forwarder is
+# needed. Expects the clean-generation example tree by default.
+host-integration dir="tmp/clean-generation/hello-plugin" id="example.hello":
+    bun scripts/verify-host-integration.mjs --dir {{dir}} --id {{id}}
+
 # Generate a fresh example plugin into an ignored scratch dir, install its
 # pinned dependencies, and run the generated repository's own gates plus this
 # repository's Markdown rules over the generated README (clean-generation
@@ -85,6 +95,7 @@ clean-generation:
     bun scripts/generate-plugin.mjs --id example.hello --name "Hello Plugin" --description "Minimal runnable Bitty plugin example." --version 0.1.0 --dir tmp/clean-generation/hello-plugin
     cd tmp/clean-generation/hello-plugin && bun install --frozen-lockfile && just check
     bunx --bun markdownlint-cli2@{{markdownlint_pin}} --no-globs ':tmp/clean-generation/hello-plugin/README.md'
+    bun scripts/verify-host-integration.mjs --dir tmp/clean-generation/hello-plugin --id example.hello
 
 # Publish a redacted CarryCtx snapshot inside this repo (commander merge
 # closeout only; never a git hook). `carryctx export --publication` redacts the
