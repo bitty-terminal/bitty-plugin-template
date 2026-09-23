@@ -16,8 +16,12 @@ and a CI quality gate.
 > [bitty-plugin-sdk](https://github.com/bitty-terminal/bitty-plugin-sdk)
 > (pinned by commit in `package.json` and `bun.lock`) and parses the Lua entry
 > point, with a fail-closed parser control so the parse cannot silently pass.
-> The `lua/<module>/` layout follows the candidate plugin-repository structure
-> in bitty-docs; confirm it against the host loader contract before publishing.
+> Entry layout: the package root holds `bitty-plugin.toml` (the discovery
+> unit) and the `lua/` module root (the `require` root). The host resolves the
+> fixed `init.lua` entry as `lua/<module>/init.lua` (or `lua/init.lua`) and
+> executes it once per activation; finding the manifest (discovery) alone does
+> not prove the entry runs (activation), and no package-root forwarder is
+> needed. The template's host-integration gate checks both phases separately.
 
 ## Layout
 

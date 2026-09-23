@@ -33,6 +33,11 @@
  * Contract references (read-only, owned by bitty-docs):
  *   - plugin id grammar and manifest limits: plugin-platform RFC (OQ-012) and
  *     `bitty-plugin-host` / `bitty-package` manifest validation.
+ *   - entry layout: the `lua/` module root holds `<module>/init.lua`, resolved
+ *     by the host `entry_point` (`<module_root>/init.lua` or
+ *     `<module_root>/<module>/init.lua`); manifest discovery alone is not
+ *     activation evidence (PLUG-SDK-001, issue #67). No package-root
+ *     forwarder is generated because the host resolves the nested shape.
  */
 import {
   cpSync,

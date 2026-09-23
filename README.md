@@ -37,8 +37,12 @@ Then `carryctx stats` reports the restored tasks, sessions, and checkpoints.
   authoritative `bitty-plugin-lint`), `justfile`, README, and a CI workflow.
 - `scripts/generate-plugin.mjs` — deterministic generator with validated
   inputs that refuses to overwrite an existing target.
+- `scripts/verify-host-integration.mjs` — host integration gate for a
+  generated package: checks manifest discovery and `init.lua` activation
+  separately (discovery is not activation evidence; PLUG-SDK-001, issue #67).
 - `just clean-generation` — generates an example plugin into an ignored
-  scratch directory and runs the generated repository's own `just check`.
+  scratch directory, runs the generated repository's own `just check`, and
+  verifies the tree against the host discovery and activation contract.
 - `just check` — repository formatting and Markdown lint gates.
 
 ## Generating a plugin
@@ -61,8 +65,11 @@ placeholder remains.
 `just clean-generation` is the repeatable evidence gate: it generates a fresh
 tree from template source, installs its pinned dependencies
 (`bun install --frozen-lockfile`), runs that tree's documented checks
-(authoritative SDK manifest lint plus a Lua parse), and lints the generated
-README with this repository's Markdown rules, all without hidden local state.
+(authoritative SDK manifest lint plus a Lua parse), verifies the tree against
+the host discovery and activation contract
+(`bun scripts/verify-host-integration.mjs`, discovery and activation checked
+separately), and lints the generated README with this repository's Markdown
+rules, all without hidden local state.
 The generator
 re-aligns Markdown tables after substitution so the generated README stays
 valid for Markdownlint's table rule (MD060) at any placeholder length; fenced
@@ -117,7 +124,8 @@ never publish from pull-request code.
 
 ```sh
 just check            # markdownlint + prettier + generator tests
-just clean-generation # generate a plugin and run its gates
+just clean-generation # generate a plugin, run its gates, verify host integration
+just host-integration # verify a generated tree against the host contract only
 ```
 
 Any scaffold, manifest, example, workflow, package, or remote-repository

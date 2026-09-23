@@ -25,6 +25,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Deterministic generator `scripts/generate-plugin.mjs` with validated inputs
   and fail-closed target handling.
 - `just clean-generation` evidence gate and `just fmt`/`fmt-files` recipes.
+- Host integration gate for generated packages (`PLUG-SDK-001`, issue #67):
+  `scripts/verify-host-integration.mjs` (with unit tests) checks manifest
+  discovery and `init.lua` activation separately against the host
+  `discover_root`/`module_root_for`/`entry_point` contract, and
+  `just clean-generation` runs it over the fresh example tree. The generated
+  `lua/<module>/init.lua` layout is reconciled as the supported nested entry
+  shape (package root holds the manifest, `lua/` is the module root); no
+  package-root forwarder is added.
 - Adopt the canonical `.editorconfig` baseline (`CTX-0023` slice); the
   repository-metadata baseline guide and ADR-0011 remain Proposed.
 
