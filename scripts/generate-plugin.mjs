@@ -75,7 +75,7 @@ const DEFAULT_VERSION = "0.1.0";
  * cache key derived from it), then run `just clean-generation` and
  * `just template-sdk-sync`.
  */
-export const PLUGIN_SDK_REF = "5a64d3c1b922fbf6fd067f3d567a7ab159db4a4b";
+export const PLUGIN_SDK_REF = "e1723b60cc94d3abc18821c9e6b14c6c88f33add";
 
 const USAGE =
   "usage: bun scripts/generate-plugin.mjs --id <owner.name> " +

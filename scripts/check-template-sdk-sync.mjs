@@ -34,7 +34,7 @@ import { PLUGIN_SDK_REF } from "./generate-plugin.mjs";
 import { lockfileTupleMatches } from "./refresh-sdk-pin.mjs";
 
 /** Frozen SDK pipeline commit (bitty-plugin-sdk #109, re-wired by #118). */
-export const FROZEN_SDK_REF = "5a64d3c1b922fbf6fd067f3d567a7ab159db4a4b";
+export const FROZEN_SDK_REF = "e1723b60cc94d3abc18821c9e6b14c6c88f33add";
 
 /** Host revision the frozen parity verdicts are pinned against. */
 export const HOST_PARITY_SOURCE = {
