@@ -9,7 +9,7 @@ and a CI quality gate.
 
 > Status: pre-implementation. The Bitty plugin host is still landing, and the
 > entry point below follows the frozen Plugin API v1 generation pipeline
-> (bitty-plugin-sdk #108, host parity from bitty #1303: `keymaps`/`tasks`
+> (bitty-plugin-sdk #109, host parity from bitty #1303: `keymaps`/`tasks`
 > WIRED, `services`/`env` DEFERRED with typed `E_NOT_IMPLEMENTED`,
 > `process.spawn` v1-OUT). `just check` validates the manifest with the
 > authoritative `bitty-plugin-lint` from
@@ -74,7 +74,7 @@ paths = ["~/Documents/**/*.md"]
 ## API contract
 
 The `bitty` namespace used by `init.lua` is the accepted Plugin API v1 surface
-as frozen by the SDK generation pipeline (bitty-plugin-sdk #108, host parity
+as frozen by the SDK generation pipeline (bitty-plugin-sdk #109, host parity
 from bitty #1303). The authoritative Lua bindings and type definitions are the
 SDK `bitty.d.lua` (R-SDK-1); do not use surface that contract does not define.
 `keymaps` and `tasks` are WIRED on the current host; `services` and `env` are

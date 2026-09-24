@@ -17,7 +17,7 @@
  *   - the least-privilege defaults (no install-time execution, no ambient
  *     authority, no allow-all capabilities, read-only CI).
  *
- * Pins below mirror the frozen SDK pipeline (bitty-plugin-sdk #108,
+ * Pins below mirror the frozen SDK pipeline (bitty-plugin-sdk #109,
  * `HOST_PARITY_SOURCE` in its `src/host-surface.ts`); bump them only in the
  * same change that regenerates the scaffold, then re-run
  * `just clean-generation`. Every gate stays offline: a missing or unreadable
@@ -33,8 +33,8 @@ import { fileURLToPath } from "node:url";
 import { PLUGIN_SDK_REF } from "./generate-plugin.mjs";
 import { lockfileTupleMatches } from "./refresh-sdk-pin.mjs";
 
-/** Frozen SDK pipeline commit (bitty-plugin-sdk #108). */
-export const FROZEN_SDK_REF = "73b3998de736e1f913d343a8e5f752cf0f0c1c46";
+/** Frozen SDK pipeline commit (bitty-plugin-sdk #109). */
+export const FROZEN_SDK_REF = "9f8f84b6451daa5166f763f29192a5c1fe8192c6";
 
 /** Host revision the frozen parity verdicts are pinned against. */
 export const HOST_PARITY_SOURCE = {
@@ -186,7 +186,7 @@ export function checkTree(root) {
   const initLua = readTreeFile(problems, root, INIT_LUA);
   if (initLua !== undefined) {
     requireMarker(problems, INIT_LUA, initLua, "bitty #1303");
-    requireMarker(problems, INIT_LUA, initLua, "bitty-plugin-sdk #108");
+    requireMarker(problems, INIT_LUA, initLua, "bitty-plugin-sdk #109");
     requireMarker(problems, INIT_LUA, initLua, "E_NOT_IMPLEMENTED");
     requireMarker(problems, INIT_LUA, initLua, "DEFERRED");
     requireMarker(problems, INIT_LUA, initLua, "WIRED");
@@ -216,7 +216,7 @@ export function checkTree(root) {
 
   const manifest = readTreeFile(problems, root, MANIFEST);
   if (manifest !== undefined) {
-    requireMarker(problems, MANIFEST, manifest, "#108");
+    requireMarker(problems, MANIFEST, manifest, "#109");
     requireMarker(problems, MANIFEST, manifest, "#1303");
     requireMarker(problems, MANIFEST, manifest, "E_NOT_IMPLEMENTED");
     requireMarker(problems, MANIFEST, manifest, "platform.notify");
@@ -229,7 +229,7 @@ export function checkTree(root) {
 
   const readme = readTreeFile(problems, root, TEMPLATE_README);
   if (readme !== undefined) {
-    requireMarker(problems, TEMPLATE_README, readme, "#108");
+    requireMarker(problems, TEMPLATE_README, readme, "#109");
     requireMarker(problems, TEMPLATE_README, readme, "#1303");
     requireMarker(problems, TEMPLATE_README, readme, "E_NOT_IMPLEMENTED");
     requireMarker(problems, TEMPLATE_README, readme, "v1-OUT");
