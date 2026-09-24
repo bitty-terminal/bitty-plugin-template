@@ -66,7 +66,7 @@ const DEFAULT_VERSION = "0.1.0";
  * `@@PLUGIN_SDK_REF@@` token in the generated `package.json` and `bun.lock`.
  * Generated repositories install the authoritative manifest linter from this
  * commit rather than vendoring a re-implementation (CTX-0017). The pin tracks
- * the frozen generation pipeline (CTX-0053 / SDK #108): per-namespace host
+ * the frozen generation pipeline (CTX-0053 / SDK #109): per-namespace host
  * parity from bitty #1303 (WIRED `keymaps`/`tasks`, DEFERRED `services`/`env`
  * with typed `E_NOT_IMPLEMENTED`, `process.spawn` v1-OUT). Maintenance: when
  * the SDK manifest contract moves, bump this SHA and regenerate
@@ -74,7 +74,7 @@ const DEFAULT_VERSION = "0.1.0";
  * cache key derived from it), then run `just clean-generation` and
  * `just template-sdk-sync`.
  */
-export const PLUGIN_SDK_REF = "73b3998de736e1f913d343a8e5f752cf0f0c1c46";
+export const PLUGIN_SDK_REF = "9f8f84b6451daa5166f763f29192a5c1fe8192c6";
 
 const USAGE =
   "usage: bun scripts/generate-plugin.mjs --id <owner.name> " +

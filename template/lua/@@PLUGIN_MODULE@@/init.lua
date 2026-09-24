@@ -4,7 +4,7 @@
 -- resource created here for the lifetime of that generation.
 --
 -- The `bitty` namespace below is the accepted Plugin API v1 surface, frozen
--- on the SDK generation pipeline (bitty-plugin-sdk #108): per-namespace host
+-- on the SDK generation pipeline (bitty-plugin-sdk #109): per-namespace host
 -- parity from bitty #1303, where `keymaps` and `tasks` are WIRED bridge
 -- captures while `services` and `env` are DEFERRED and fail closed with typed
 -- `E_NOT_IMPLEMENTED` (runtime); `process.spawn` is v1-OUT and has no entry
