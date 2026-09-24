@@ -9,8 +9,9 @@ and a CI quality gate.
 
 > Status: pre-implementation. The Bitty plugin host is still landing, and the
 > entry point below follows the frozen Plugin API v1 generation pipeline
-> (bitty-plugin-sdk #109, host parity from bitty #1303: `keymaps`/`tasks`
-> WIRED, `services`/`env` DEFERRED with typed `E_NOT_IMPLEMENTED`,
+> (bitty-plugin-sdk #109, re-wired by SDK #118, host parity from bitty #1303
+> as re-wired by bitty #1391: `keymaps`/`tasks`/`services`
+> WIRED, `env` DEFERRED with typed `E_NOT_IMPLEMENTED`,
 > `process.spawn` v1-OUT). `just check` validates the manifest with the
 > authoritative `bitty-plugin-lint` from
 > [bitty-plugin-sdk](https://github.com/bitty-terminal/bitty-plugin-sdk)
@@ -74,12 +75,14 @@ paths = ["~/Documents/**/*.md"]
 ## API contract
 
 The `bitty` namespace used by `init.lua` is the accepted Plugin API v1 surface
-as frozen by the SDK generation pipeline (bitty-plugin-sdk #109, host parity
-from bitty #1303). The authoritative Lua bindings and type definitions are the
+as frozen by the SDK generation pipeline (bitty-plugin-sdk #109, re-wired by
+SDK #118, host parity from bitty #1303 as re-wired by bitty #1391). The
+authoritative Lua bindings and type definitions are the
 SDK `bitty.d.lua` (R-SDK-1); do not use surface that contract does not define.
-`keymaps` and `tasks` are WIRED on the current host; `services` and `env` are
-DEFERRED typed stubs that fail closed with `E_NOT_IMPLEMENTED` (runtime), so
-their example calls in `init.lua` stay commented out. `process.spawn` is
+`keymaps`, `tasks`, and `services` are WIRED on the current host (the example
+provides and resolves `greeter` live); `env` is a DEFERRED typed stub that
+fails closed with `E_NOT_IMPLEMENTED` (runtime), so its example call in
+`init.lua` stays commented out. `process.spawn` is
 v1-OUT and has no entry point.
 
 ## Before publishing
