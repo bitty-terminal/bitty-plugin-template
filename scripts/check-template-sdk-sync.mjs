@@ -11,9 +11,9 @@
  *
  *   - the `PLUGIN_SDK_REF` pin in `scripts/generate-plugin.mjs`,
  *   - the resolved `template/bun.lock` tuple for that pin,
- *   - the pending-host flags in the scaffold (`keymaps`/`tasks` WIRED,
- *     `services`/`env` DEFERRED with typed `E_NOT_IMPLEMENTED`,
- *     `process.spawn` v1-OUT, from bitty #1303),
+ *   - the pending-host flags in the scaffold (`keymaps`/`tasks`/`services`
+ *     WIRED, `env` DEFERRED with typed `E_NOT_IMPLEMENTED`,
+ *     `process.spawn` v1-OUT, from bitty #1303 as re-wired by bitty #1391),
  *   - the least-privilege defaults (no install-time execution, no ambient
  *     authority, no allow-all capabilities, read-only CI).
  *
@@ -33,29 +33,24 @@ import { fileURLToPath } from "node:url";
 import { PLUGIN_SDK_REF } from "./generate-plugin.mjs";
 import { lockfileTupleMatches } from "./refresh-sdk-pin.mjs";
 
-/** Frozen SDK pipeline commit (bitty-plugin-sdk #109). */
-export const FROZEN_SDK_REF = "9f8f84b6451daa5166f763f29192a5c1fe8192c6";
+/** Frozen SDK pipeline commit (bitty-plugin-sdk #109, re-wired by #118). */
+export const FROZEN_SDK_REF = "e1723b60cc94d3abc18821c9e6b14c6c88f33add";
 
 /** Host revision the frozen parity verdicts are pinned against. */
 export const HOST_PARITY_SOURCE = {
   repository: "bitty",
-  commit: "c01f538addc5edadc813351e3060a5642dbd40b9",
-  pr: 1303,
+  commit: "b8673937b6825ae4e7f1c35f4adc152ffd171f87",
+  pr: 1391,
 };
 
 /** Namespaces the frozen host has not wired yet (fail closed). */
-export const DEFERRED_NAMESPACES = ["env", "services"];
+export const DEFERRED_NAMESPACES = ["env"];
 
 /** Accepted v1 functions that stay present but fail closed on the host. */
-export const DEFERRED_FUNCTIONS = [
-  "env.get",
-  "env.has",
-  "services.get",
-  "services.provide",
-];
+export const DEFERRED_FUNCTIONS = ["env.get", "env.has"];
 
 /** Namespaces the frozen host wires as bridge captures (usable examples). */
-export const WIRED_NAMESPACES = ["keymaps", "tasks"];
+export const WIRED_NAMESPACES = ["keymaps", "services", "tasks"];
 
 /** Entry point excluded from v1 (no spelling in the scaffold). */
 export const V1_OUT_EXCLUSION = "process.spawn";

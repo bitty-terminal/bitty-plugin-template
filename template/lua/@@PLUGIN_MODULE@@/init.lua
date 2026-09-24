@@ -4,10 +4,11 @@
 -- resource created here for the lifetime of that generation.
 --
 -- The `bitty` namespace below is the accepted Plugin API v1 surface, frozen
--- on the SDK generation pipeline (bitty-plugin-sdk #109): per-namespace host
--- parity from bitty #1303, where `keymaps` and `tasks` are WIRED bridge
--- captures while `services` and `env` are DEFERRED and fail closed with typed
--- `E_NOT_IMPLEMENTED` (runtime); `process.spawn` is v1-OUT and has no entry
+-- on the SDK generation pipeline (bitty-plugin-sdk #109, re-wired by SDK
+-- #118): per-namespace host parity from bitty #1303 as re-wired by bitty
+-- #1391, where `keymaps`, `tasks`, and `services` are WIRED bridge captures
+-- while `env` is DEFERRED and fails closed with typed `E_NOT_IMPLEMENTED`
+-- (runtime); `process.spawn` is v1-OUT and has no entry
 -- point. The authoritative Lua bindings are the SDK `bitty.d.lua` (R-SDK-1);
 -- do not use surface that contract does not define.
 --
@@ -45,18 +46,22 @@ bitty.commands.register({
 -- })
 -- bitty.tasks.spawn(function() end)
 
--- DEFERRED namespaces (typed stubs; every call fails closed with
--- `E_NOT_IMPLEMENTED` (runtime) until the host backends land, so these stay
+-- WIRED services (bitty #1391): `provide` registers the manifest-declared
+-- implementation below (`[services.provided]` in `bitty-plugin.toml`) and
+-- `get` resolves it back during activation.
+bitty.services.provide("@@PLUGIN_ID@@.greeter", {
+  hello = function()
+    return "hi"
+  end,
+})
+local service = bitty.services.get("@@PLUGIN_ID@@.greeter", { version = ">=1.0.0" })
+if service ~= nil then
+  print(service.hello())
+end
+
+-- DEFERRED namespace (typed stub; every call fails closed with
+-- `E_NOT_IMPLEMENTED` (runtime) until the host backend lands, so it stays
 -- commented out in the runnable example):
--- bitty.services.provide("@@PLUGIN_ID@@.greeter", {
---   hello = function()
---     return "hi"
---   end,
--- })
--- local service = bitty.services.get("example.greeter", { version = ">=1.0.0", optional = true })
--- if service ~= nil then
---   print(service.hello)
--- end
 -- if bitty.env then
 --   print(bitty.env.has("EDITOR"), bitty.env.get("EDITOR"))
 -- end

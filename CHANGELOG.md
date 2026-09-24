@@ -38,6 +38,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Track the SDK `services` re-wire (issue #80, companion to bitty-plugin-sdk
+  #115): the frozen pipeline pin advances to the SDK re-wire commit, the
+  pending-host flags flip `services` DEFERRED -> WIRED (host parity from bitty
+  #1303 as re-wired by bitty #1391; `env` stays DEFERRED), the scaffold
+  example provides and resolves `greeter` live against a new
+  `[services.provided]` manifest declaration, and the lockfile tuple is
+  refreshed. Final re-pin to the SDK merge commit is required before merge
+  (the pin currently points at the SDK PR head).
 - Regenerate the template scaffold from the frozen SDK generation pipeline
   (`CTX-0036`, SDK #108, host parity from bitty #1303): bump `PLUGIN_SDK_REF`
   to the frozen commit and re-resolve `template/bun.lock` for it; `init.lua`

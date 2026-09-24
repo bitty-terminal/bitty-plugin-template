@@ -6,8 +6,9 @@
 #
 # `just manifest` validates this file with the authoritative `bitty-plugin-lint`
 # from bitty-plugin-sdk (R-SDK-2), pinned by commit in `package.json` and
-# `bun.lock`. The pin tracks the frozen generation pipeline (SDK #109, host
-# parity from bitty #1303). Run `just install` once to materialize it.
+# `bun.lock`. The pin tracks the frozen generation pipeline (SDK #109,
+# re-wired by SDK #118, host parity from bitty #1303 as re-wired by bitty
+# #1391). Run `just install` once to materialize it.
 
 [plugin]
 id = "@@PLUGIN_ID@@"
@@ -27,10 +28,18 @@ plugin-api = "^1.0"
 # Deny by default: omit this table entirely when the plugin needs no authority.
 # Request capabilities one by one; unknown identifiers fail validation and
 # there is no allow-all identifier. `platform.notify` backs the example command
-# in `lua/@@PLUGIN_MODULE@@/init.lua`. Deferred namespaces (`services`, `env`)
-# fail closed with `E_NOT_IMPLEMENTED` on the current host (bitty #1303) even
-# when declared, so this scaffold requests nothing for them.
+# in `lua/@@PLUGIN_MODULE@@/init.lua`. The `services` namespace is WIRED on
+# the current host (bitty #1391): the example provides `greeter` live, so its
+# implementation is declared here. The `env` namespace stays DEFERRED and
+# fails closed with `E_NOT_IMPLEMENTED` on the current host (bitty #1303) even
+# when declared, so this scaffold requests nothing for it.
 platform.notify = true
+
+[services.provided]
+# Version-pinned service implementations served by `init.lua` via
+# `bitty.services.provide`. Versions are syntax-validated here and resolved
+# by the host at install time.
+"@@PLUGIN_ID@@.greeter" = "1.0.0"
 
 [lazy]
 # Static triggers let the host register the plugin without creating a VM.

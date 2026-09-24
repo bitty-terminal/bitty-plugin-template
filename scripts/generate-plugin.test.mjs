@@ -269,14 +269,13 @@ describe("Template/SDK sync (CTX-0036)", () => {
     expect(PLUGIN_SDK_REF).toBe(FROZEN_SDK_REF);
   });
 
-  test("the frozen pipeline covers 4 deferred stubs and 2 wired namespaces", () => {
-    expect([...DEFERRED_FUNCTIONS].sort()).toEqual([
-      "env.get",
-      "env.has",
-      "services.get",
-      "services.provide",
+  test("the frozen pipeline covers 2 deferred stubs and 3 wired namespaces", () => {
+    expect([...DEFERRED_FUNCTIONS].sort()).toEqual(["env.get", "env.has"]);
+    expect([...WIRED_NAMESPACES].sort()).toEqual([
+      "keymaps",
+      "services",
+      "tasks",
     ]);
-    expect([...WIRED_NAMESPACES].sort()).toEqual(["keymaps", "tasks"]);
   });
 
   test("checkTree agrees with this repository (offline)", () => {

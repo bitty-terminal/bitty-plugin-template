@@ -87,8 +87,9 @@ and indented code blocks are left byte-identical. CI runs it after `just check`.
   re-implementation. The pin is a single named constant, `PLUGIN_SDK_REF` in
   `scripts/generate-plugin.mjs`, substituted into the generated tree as
   `@@PLUGIN_SDK_REF@@`. It tracks the frozen generation pipeline
-  (bitty-plugin-sdk #108, host parity from bitty #1303: `keymaps`/`tasks`
-  WIRED, `services`/`env` DEFERRED with typed `E_NOT_IMPLEMENTED`,
+  (bitty-plugin-sdk #108, re-wired by SDK #118, host parity from bitty #1303
+  as re-wired by bitty #1391: `keymaps`/`tasks`/`services`
+  WIRED, `env` DEFERRED with typed `E_NOT_IMPLEMENTED`,
   `process.spawn` v1-OUT).
   - **Maintenance:** when the SDK manifest contract moves, bump
     `PLUGIN_SDK_REF`, run `just refresh-sdk-pin` (or
@@ -108,9 +109,11 @@ and indented code blocks are left byte-identical. CI runs it after `just check`.
   the resolved lockfile tuple, the pending-host flags in `init.lua`, the
   least-privilege defaults, and the read-only SHA-pinned CI. It runs offline.
 - Plugin API bindings in `init.lua` follow the frozen v1 surface; the
-  authoritative Lua bindings are the SDK `bitty.d.lua` (R-SDK-1). Deferred
-  namespaces (`services`, `env`) stay commented-out typed stubs that fail
-  closed with `E_NOT_IMPLEMENTED` on the current host.
+  authoritative Lua bindings are the SDK `bitty.d.lua` (R-SDK-1). The
+  `services` namespace is WIRED (bitty #1391: the example provides and
+  resolves `greeter` live against a `[services.provided]` declaration); `env`
+  stays a commented-out typed stub that fails closed with `E_NOT_IMPLEMENTED`
+  on the current host.
 
 ## Safety boundary
 
