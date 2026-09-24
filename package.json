@@ -11,7 +11,7 @@
     "@commitlint/config-conventional": "21.2.3",
     "carryctx": "0.11.6",
     "lefthook": "2.1.14",
-    "markdownlint-cli2": "0.23.2",
+    "markdownlint-cli2": "0.23.3",
     "prettier": "3.9.8"
   }
 }
