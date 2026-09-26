@@ -37,6 +37,7 @@
  */
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
+import * as TOML from "@iarna/toml";
 
 /** Native in-process artifacts the host rejects at activation, never loads. */
 export const NATIVE_ARTIFACT_EXTENSIONS = ["so", "dll", "dylib", "node"];
@@ -78,10 +79,20 @@ function parseArgs(argv) {
 /**
  * Read the plugin id from a manifest body (`[plugin] id = "..."`).
  * Returns null when the field is absent rather than guessing.
+ *
+ * Parses the TOML structure to ensure the id is under [plugin], not
+ * another section like [dependencies].
  */
 export function manifestId(body) {
-  const match = body.match(/^\s*id\s*=\s*"([^"]*)"/m);
-  return match === null ? null : match[1];
+  try {
+    const parsed = TOML.parse(body);
+    if (parsed.plugin && typeof parsed.plugin.id === "string") {
+      return parsed.plugin.id;
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 /**
