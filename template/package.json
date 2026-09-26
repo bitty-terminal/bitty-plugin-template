@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "description": "@@PLUGIN_DESCRIPTION@@",
+  "packageManager": "bun@1.4.2",
   "devDependencies": {
     "bitty-plugin-sdk": "github:bitty-terminal/bitty-plugin-sdk#@@PLUGIN_SDK_REF@@",
     "luaparse": "0.3.1"

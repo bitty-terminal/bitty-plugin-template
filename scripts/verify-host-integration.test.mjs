@@ -8,6 +8,7 @@ import {
   statSync,
   writeFileSync,
 } from "node:fs";
+import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 
 import {
@@ -29,8 +30,7 @@ function fixture({
   entry = "nested",
   extraFiles = [],
 } = {}) {
-  mkdirSync("/tmp/bitty", { recursive: true });
-  const root = mkdtempSync("/tmp/bitty/verify-host-");
+  const root = mkdtempSync(join(tmpdir(), "bitty-verify-host-"));
   writeFileSync(join(root, "bitty-plugin.toml"), manifest(id));
   if (entry === "nested") {
     const module = id.split(".").at(-1);
@@ -58,6 +58,20 @@ describe("manifestId", () => {
   test("returns null when the id field is absent", () => {
     expect(manifestId('[plugin]\nname = "No id"\n')).toBeNull();
   });
+
+  test("returns null when id is in another section (TPL-002)", () => {
+    const body = '[plugin]\nname = "Test"\n\n[dependencies]\nid = "wrong.id"\n';
+    expect(manifestId(body)).toBeNull();
+  });
+
+  test("reads quoted plugin id correctly", () => {
+    const body = '[plugin]\nid = "owner.plugin-name"\nname = "Test"\n';
+    expect(manifestId(body)).toBe("owner.plugin-name");
+  });
+
+  test("returns null on malformed TOML", () => {
+    expect(manifestId('[plugin\nid = "broken')).toBeNull();
+  });
 });
 
 describe("moduleRootFor (mirrors the host)", () => {
@@ -71,8 +85,7 @@ describe("moduleRootFor (mirrors the host)", () => {
   });
 
   test("falls back to the package root without lua/", () => {
-    mkdirSync("/tmp/bitty", { recursive: true });
-    const root = mkdtempSync("/tmp/bitty/verify-host-");
+    const root = mkdtempSync(join(tmpdir(), "bitty-verify-host-"));
     try {
       writeFileSync(join(root, "bitty-plugin.toml"), manifest("example.hello"));
       writeFileSync(join(root, "init.lua"), "return {}\n");
@@ -148,8 +161,7 @@ describe("generated-package host integration gate (issue #67)", () => {
   });
 
   test("discovery fails without a manifest", () => {
-    mkdirSync("/tmp/bitty", { recursive: true });
-    const root = mkdtempSync("/tmp/bitty/verify-host-");
+    const root = mkdtempSync(join(tmpdir(), "bitty-verify-host-"));
     try {
       expect(() => checkDiscovery(root)).toThrow(/no bitty-plugin\.toml/);
     } finally {
