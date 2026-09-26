@@ -8,13 +8,19 @@
  * requested-spec line, so the concrete ref the generator substitutes is the
  * only committed pin. Bun cannot resolve a placeholder, so this script:
  *
- *   1. swaps `PLUGIN_SDK_REF` into `template/package.json` and
- *      `template/bun.lock`;
- *   2. re-resolves the git dependency with `bun update bitty-plugin-sdk`.
- *      A plain `bun install` is wrong here: Bun reuses an existing
- *      git-dependency lockfile entry and does not re-resolve a changed ref, so
- *      the resolved tuple would stay stale (reviewer finding PX-0103);
- *   3. restores the `@@PLUGIN_SDK_REF@@` placeholder in both files.
+ *   1. copies `template/package.json` and `template/bun.lock` to temporary
+ *      locations;
+ *   2. swaps `PLUGIN_SDK_REF` into the temporary copies;
+ *   3. re-resolves the git dependency with `bun update bitty-plugin-sdk` in a
+ *      temporary directory. A plain `bun install` is wrong here: Bun reuses an
+ *      existing git-dependency lockfile entry and does not re-resolve a changed
+ *      ref, so the resolved tuple would stay stale (reviewer finding PX-0103);
+ *   4. validates the resolved tuple matches the pin;
+ *   5. restores the `@@PLUGIN_SDK_REF@@` placeholder in the temporary copies;
+ *   6. atomically replaces the tracked files with the validated temporary copies.
+ *
+ * Atomic guarantee: tracked files are never left partially modified. All
+ * validation completes before replacement; failures clean only task-owned temp.
  *
  * `template/bun.lock` intentionally embeds the resolved short SHA, cache key,
  * and integrity hash — that is what makes `bun install --frozen-lockfile` work
@@ -35,7 +41,17 @@
  * stays offline.
  */
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -115,6 +131,14 @@ function read(file) {
   return readFileSync(file, "utf8");
 }
 
+/**
+ * Temporary directory base for atomic pin refresh. Derives from GEN_TMPDIR
+ * environment variable or OS tmpdir, never hardcoded.
+ */
+function genTmpDir() {
+  return process.env.GEN_TMPDIR || tmpdir();
+}
+
 function main() {
   const { ref, template } = parseArgs(process.argv.slice(2));
   const packageJson = join(template, "package.json");
@@ -130,13 +154,27 @@ function main() {
     fail(`${packageJson} does not carry the ${PLACEHOLDER} placeholder`);
   }
 
-  writeFileSync(packageJson, applyPin(read(packageJson), ref));
-  writeFileSync(bunLock, applyPin(read(bunLock), ref));
+  // Atomic pin refresh: work in temp directory, validate completely, then
+  // atomically replace tracked files. Never leave tracked files partially changed.
+  const tmpBase = join(genTmpDir(), "bitty-plugin-sdk-refresh");
+  mkdirSync(tmpBase, { recursive: true });
+  const tempDir = mkdtempSync(join(tmpBase, "template-"));
 
-  let status = 0;
   try {
+    // Create temp copies of tracked files
+    const tempPackageJson = join(tempDir, "package.json");
+    const tempBunLock = join(tempDir, "bun.lock");
+
+    cpSync(packageJson, tempPackageJson);
+    cpSync(bunLock, tempBunLock);
+
+    // Apply pin to temp copies
+    writeFileSync(tempPackageJson, applyPin(read(tempPackageJson), ref));
+    writeFileSync(tempBunLock, applyPin(read(tempBunLock), ref));
+
+    // Re-resolve in temp directory
     const result = spawnSync("bun", RESOLVE_COMMAND, {
-      cwd: template,
+      cwd: tempDir,
       stdio: "inherit",
     });
     if (result.error) {
@@ -147,37 +185,52 @@ function main() {
         `bun ${RESOLVE_COMMAND.join(" ")} exited ${result.status}`,
       );
     }
-  } catch (error) {
-    status = 1;
-    console.error(
-      `refresh-sdk-pin: ${error instanceof Error ? error.message : String(error)}`,
+
+    // Validate resolved tuple
+    const resolvedLockfile = read(tempBunLock);
+    if (!lockfileTupleMatches(resolvedLockfile, ref)) {
+      fail(
+        `${bunLock} resolved SDK tuple does not match ${ref.slice(0, 7)}; ` +
+          "inspect the lockfile and re-run",
+      );
+    }
+
+    // Restore placeholder in temp copies
+    writeFileSync(
+      tempPackageJson,
+      restorePlaceholder(read(tempPackageJson), ref),
     );
-  } finally {
-    writeFileSync(packageJson, restorePlaceholder(read(packageJson), ref));
-    writeFileSync(bunLock, restorePlaceholder(read(bunLock), ref));
+    writeFileSync(tempBunLock, restorePlaceholder(read(tempBunLock), ref));
+
+    // Validate placeholder restoration
+    if (!read(tempPackageJson).includes(PLACEHOLDER)) {
+      fail(`${tempPackageJson} lost the ${PLACEHOLDER} placeholder`);
+    }
+
+    // Atomic replacement: copy validated temp files over tracked files
+    cpSync(tempPackageJson, packageJson);
+    cpSync(tempBunLock, bunLock);
+
+    // Clean up node_modules if it exists
     if (existsSync(nodeModules)) {
       rmSync(nodeModules, { recursive: true, force: true });
     }
-  }
 
-  if (status !== 0) {
-    fail(
-      `bun ${RESOLVE_COMMAND.join(" ")} failed; template files were restored, re-run when fixed`,
+    console.log(
+      `refresh-sdk-pin: ${bunLock} resolves ${ref.slice(0, 7)}; placeholder restored`,
     );
+  } catch (error) {
+    // Clean only task-owned temp on failure
+    if (existsSync(tempDir)) {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+    throw error;
+  } finally {
+    // Always clean temp directory
+    if (existsSync(tempDir)) {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
   }
-  const lockfile = read(bunLock);
-  if (!lockfileTupleMatches(lockfile, ref)) {
-    fail(
-      `${bunLock} resolved SDK tuple does not match ${ref.slice(0, 7)}; ` +
-        "inspect the lockfile and re-run",
-    );
-  }
-  if (!read(packageJson).includes(PLACEHOLDER)) {
-    fail(`${packageJson} lost the ${PLACEHOLDER} placeholder`);
-  }
-  console.log(
-    `refresh-sdk-pin: ${bunLock} resolves ${ref.slice(0, 7)}; placeholder restored`,
-  );
 }
 
 if (import.meta.main) {

@@ -43,13 +43,16 @@ import {
   cpSync,
   existsSync,
   mkdirSync,
+  mkdtempSync,
   readFileSync,
   readdirSync,
   renameSync,
+  rmSync,
   writeFileSync,
 } from "node:fs";
 import { dirname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { tmpdir } from "node:os";
 
 const MAX_PLUGIN_ID_LEN = 128;
 const MAX_ID_SEGMENT_LEN = 64;
@@ -620,6 +623,14 @@ function walkFiles(root, visit) {
   }
 }
 
+/**
+ * Temporary directory base for atomic generation. Derives from GEN_TMPDIR
+ * environment variable or OS tmpdir, never hardcoded.
+ */
+function genTmpDir() {
+  return process.env.GEN_TMPDIR || tmpdir();
+}
+
 function main() {
   const args = parseArgs(process.argv.slice(2));
   for (const flag of ["id", "name", "dir"]) {
@@ -658,42 +669,68 @@ function main() {
   if (existsSync(target)) {
     fail(`target already exists: ${target} (refusing to overwrite)`);
   }
-  mkdirSync(dirname(target), { recursive: true });
-  cpSync(templateDir, target, {
-    recursive: true,
-    errorOnExist: true,
-    force: false,
-  });
 
-  const moduleDir = join(target, "lua", "@@PLUGIN_MODULE@@");
-  if (!existsSync(moduleDir)) {
-    fail("template is missing lua/@@PLUGIN_MODULE@@");
-  }
-  renameSync(moduleDir, join(target, "lua", moduleName));
+  // Atomic generation: create unique sibling temp, validate completely, then
+  // atomically publish via rename. Clean only task-owned temp on failure.
+  const targetParent = dirname(target);
+  const targetName = target.split(sep).at(-1);
+  mkdirSync(targetParent, { recursive: true });
 
-  const tokens = {
-    "@@PLUGIN_ID@@": id,
-    "@@PLUGIN_NAME@@": name,
-    "@@PLUGIN_VERSION@@": version,
-    "@@PLUGIN_DESCRIPTION@@": description,
-    "@@PLUGIN_MODULE@@": moduleName,
-    "@@PLUGIN_SDK_REF@@": PLUGIN_SDK_REF,
-  };
-  walkFiles(target, (file) => replacePlaceholders(file, tokens));
+  const tmpBase = join(genTmpDir(), "bitty-plugin-gen");
+  mkdirSync(tmpBase, { recursive: true });
+  const tempTarget = mkdtempSync(join(tmpBase, `${targetName}-`));
 
-  let unresolved = false;
-  walkFiles(target, (file) => {
-    if (readFileSync(file, "utf8").includes(RESERVED_PLACEHOLDER_PREFIX)) {
-      console.error(`generate-plugin: unresolved placeholder in ${file}`);
-      unresolved = true;
+  try {
+    // Copy template contents into temp directory
+    for (const entry of readdirSync(templateDir, { withFileTypes: true })) {
+      const src = join(templateDir, entry.name);
+      const dest = join(tempTarget, entry.name);
+      cpSync(src, dest, {
+        recursive: true,
+        errorOnExist: true,
+        force: false,
+      });
     }
-  });
-  if (unresolved) {
-    fail(`generated tree contains unresolved placeholders: ${target}`);
-  }
 
-  console.log(`Generated ${id} ${version} at ${target}`);
-  console.log(`Next: cd ${target} && just check`);
+    const moduleDir = join(tempTarget, "lua", "@@PLUGIN_MODULE@@");
+    if (!existsSync(moduleDir)) {
+      fail("template is missing lua/@@PLUGIN_MODULE@@");
+    }
+    renameSync(moduleDir, join(tempTarget, "lua", moduleName));
+
+    const tokens = {
+      "@@PLUGIN_ID@@": id,
+      "@@PLUGIN_NAME@@": name,
+      "@@PLUGIN_VERSION@@": version,
+      "@@PLUGIN_DESCRIPTION@@": description,
+      "@@PLUGIN_MODULE@@": moduleName,
+      "@@PLUGIN_SDK_REF@@": PLUGIN_SDK_REF,
+    };
+    walkFiles(tempTarget, (file) => replacePlaceholders(file, tokens));
+
+    let unresolved = false;
+    walkFiles(tempTarget, (file) => {
+      if (readFileSync(file, "utf8").includes(RESERVED_PLACEHOLDER_PREFIX)) {
+        console.error(`generate-plugin: unresolved placeholder in ${file}`);
+        unresolved = true;
+      }
+    });
+    if (unresolved) {
+      fail(`generated tree contains unresolved placeholders: ${tempTarget}`);
+    }
+
+    // Atomic publish: rename temp to final target
+    renameSync(tempTarget, target);
+
+    console.log(`Generated ${id} ${version} at ${target}`);
+    console.log(`Next: cd ${target} && just check`);
+  } catch (error) {
+    // Clean only task-owned temp on failure
+    if (existsSync(tempTarget)) {
+      rmSync(tempTarget, { recursive: true, force: true });
+    }
+    throw error;
+  }
 }
 
 if (import.meta.main) {
