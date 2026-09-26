@@ -9,6 +9,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { join, dirname } from "node:path";
+import { tmpdir } from "node:os";
 
 import {
   checkActivation,
@@ -23,14 +24,23 @@ function manifest(id) {
   return `[plugin]\nid = "${id}"\nname = "Fixture"\nversion = "0.1.0"\ndescription = "Host integration fixture."\n\n[lazy]\ncommands = ["${id}:hello"]\n`;
 }
 
+/**
+ * Temporary directory for test fixtures. Derives from OS tmpdir and optional
+ * TEST_TMPDIR environment variable, never hardcodes a host path.
+ */
+function testTmpDir() {
+  return process.env.TEST_TMPDIR || join(tmpdir(), "bitty");
+}
+
 /** Create a scratch package tree; the caller removes it. */
 function fixture({
   id = "example.hello",
   entry = "nested",
   extraFiles = [],
 } = {}) {
-  mkdirSync("/tmp/bitty", { recursive: true });
-  const root = mkdtempSync("/tmp/bitty/verify-host-");
+  const tmpBase = testTmpDir();
+  mkdirSync(tmpBase, { recursive: true });
+  const root = mkdtempSync(join(tmpBase, "verify-host-"));
   writeFileSync(join(root, "bitty-plugin.toml"), manifest(id));
   if (entry === "nested") {
     const module = id.split(".").at(-1);
@@ -58,6 +68,27 @@ describe("manifestId", () => {
   test("returns null when the id field is absent", () => {
     expect(manifestId('[plugin]\nname = "No id"\n')).toBeNull();
   });
+
+  test("returns null on invalid TOML syntax", () => {
+    expect(manifestId('[plugin]\nid = "unclosed')).toBeNull();
+  });
+
+  test("returns null when [plugin] table is missing", () => {
+    expect(manifestId('[other]\nid = "example.hello"\n')).toBeNull();
+  });
+
+  test("returns null when id is not a string", () => {
+    expect(manifestId("[plugin]\nid = 123\n")).toBeNull();
+  });
+
+  test("returns null when id is an empty string", () => {
+    expect(manifestId('[plugin]\nid = ""\n')).toBeNull();
+  });
+
+  test("rejects id from non-plugin table", () => {
+    const ambiguous = '[other]\nid = "wrong.id"\n[plugin]\nid = "correct.id"\n';
+    expect(manifestId(ambiguous)).toBe("correct.id");
+  });
 });
 
 describe("moduleRootFor (mirrors the host)", () => {
@@ -71,8 +102,9 @@ describe("moduleRootFor (mirrors the host)", () => {
   });
 
   test("falls back to the package root without lua/", () => {
-    mkdirSync("/tmp/bitty", { recursive: true });
-    const root = mkdtempSync("/tmp/bitty/verify-host-");
+    const tmpBase = testTmpDir();
+    mkdirSync(tmpBase, { recursive: true });
+    const root = mkdtempSync(join(tmpBase, "verify-host-"));
     try {
       writeFileSync(join(root, "bitty-plugin.toml"), manifest("example.hello"));
       writeFileSync(join(root, "init.lua"), "return {}\n");
@@ -148,8 +180,9 @@ describe("generated-package host integration gate (issue #67)", () => {
   });
 
   test("discovery fails without a manifest", () => {
-    mkdirSync("/tmp/bitty", { recursive: true });
-    const root = mkdtempSync("/tmp/bitty/verify-host-");
+    const tmpBase = testTmpDir();
+    mkdirSync(tmpBase, { recursive: true });
+    const root = mkdtempSync(join(tmpBase, "verify-host-"));
     try {
       expect(() => checkDiscovery(root)).toThrow(/no bitty-plugin\.toml/);
     } finally {

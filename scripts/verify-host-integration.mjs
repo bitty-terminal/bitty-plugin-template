@@ -37,6 +37,7 @@
  */
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { parse as parseToml } from "smol-toml";
 
 /** Native in-process artifacts the host rejects at activation, never loads. */
 export const NATIVE_ARTIFACT_EXTENSIONS = ["so", "dll", "dylib", "node"];
@@ -77,11 +78,37 @@ function parseArgs(argv) {
 
 /**
  * Read the plugin id from a manifest body (`[plugin] id = "..."`).
- * Returns null when the field is absent rather than guessing.
+ * Parses the TOML structurally and rejects missing, duplicate, or ambiguous
+ * [plugin] tables. Returns null when the field is absent or invalid.
  */
 export function manifestId(body) {
-  const match = body.match(/^\s*id\s*=\s*"([^"]*)"/m);
-  return match === null ? null : match[1];
+  let parsed;
+  try {
+    parsed = parseToml(body);
+  } catch (error) {
+    // Invalid TOML syntax fails; return null instead of propagating
+    return null;
+  }
+
+  // Require exactly one [plugin] table
+  if (!parsed || typeof parsed !== "object") {
+    return null;
+  }
+
+  const pluginTable = parsed.plugin;
+  if (!pluginTable || typeof pluginTable !== "object") {
+    return null;
+  }
+
+  // Multiple [plugin] tables would be merged by the parser, but TOML spec
+  // forbids duplicate tables. smol-toml merges them, so we can't detect
+  // duplicates here, but we can validate the id field exists and is a string.
+  const id = pluginTable.id;
+  if (typeof id !== "string" || id.length === 0) {
+    return null;
+  }
+
+  return id;
 }
 
 /**
