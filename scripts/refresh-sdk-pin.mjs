@@ -35,7 +35,15 @@
  * stays offline.
  */
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  cpSync,
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -119,26 +127,37 @@ function main() {
   const { ref, template } = parseArgs(process.argv.slice(2));
   const packageJson = join(template, "package.json");
   const bunLock = join(template, "bun.lock");
-  const nodeModules = join(template, "node_modules");
 
   for (const file of [packageJson, bunLock]) {
     if (!existsSync(file)) {
       fail(`missing ${file}`);
     }
   }
-  if (!read(packageJson).includes(PLACEHOLDER)) {
+
+  const originalPackageJson = read(packageJson);
+  const originalBunLock = read(bunLock);
+
+  if (!originalPackageJson.includes(PLACEHOLDER)) {
     fail(`${packageJson} does not carry the ${PLACEHOLDER} placeholder`);
   }
 
-  writeFileSync(packageJson, applyPin(read(packageJson), ref));
-  writeFileSync(bunLock, applyPin(read(bunLock), ref));
+  // Create a temporary scratch directory for the transactional refresh
+  const scratchDir = mkdtempSync(join(tmpdir(), "bitty-refresh-sdk-"));
+  const scratchPackageJson = join(scratchDir, "package.json");
+  const scratchBunLock = join(scratchDir, "bun.lock");
+  const scratchNodeModules = join(scratchDir, "node_modules");
 
-  let status = 0;
   try {
+    // Copy template files to scratch directory
+    writeFileSync(scratchPackageJson, applyPin(originalPackageJson, ref));
+    writeFileSync(scratchBunLock, applyPin(originalBunLock, ref));
+
+    // Run the resolution in the scratch directory
     const result = spawnSync("bun", RESOLVE_COMMAND, {
-      cwd: template,
+      cwd: scratchDir,
       stdio: "inherit",
     });
+
     if (result.error) {
       throw result.error;
     }
@@ -147,37 +166,69 @@ function main() {
         `bun ${RESOLVE_COMMAND.join(" ")} exited ${result.status}`,
       );
     }
-  } catch (error) {
-    status = 1;
-    console.error(
-      `refresh-sdk-pin: ${error instanceof Error ? error.message : String(error)}`,
+
+    // Validate the resolved lockfile
+    const resolvedLockfile = read(scratchBunLock);
+    if (!lockfileTupleMatches(resolvedLockfile, ref)) {
+      fail(
+        `${scratchBunLock} resolved SDK tuple does not match ${ref.slice(0, 7)}; ` +
+          "inspect the lockfile and re-run",
+      );
+    }
+
+    // Restore placeholders in the scratch directory
+    const resolvedPackageJson = read(scratchPackageJson);
+    const finalPackageJson = restorePlaceholder(resolvedPackageJson, ref);
+    const finalBunLock = restorePlaceholder(resolvedLockfile, ref);
+
+    if (!finalPackageJson.includes(PLACEHOLDER)) {
+      fail(`${scratchPackageJson} lost the ${PLACEHOLDER} placeholder`);
+    }
+
+    // Atomically replace the original files with backups
+    const backupPackageJson = packageJson + ".backup";
+    const backupBunLock = bunLock + ".backup";
+
+    try {
+      // Create backups
+      writeFileSync(backupPackageJson, originalPackageJson);
+      writeFileSync(backupBunLock, originalBunLock);
+
+      // Atomically replace both files
+      writeFileSync(packageJson, finalPackageJson);
+      writeFileSync(bunLock, finalBunLock);
+
+      // Clean up backups on success
+      rmSync(backupPackageJson, { force: true });
+      rmSync(backupBunLock, { force: true });
+    } catch (error) {
+      // Restore from backups on any error
+      if (existsSync(backupPackageJson)) {
+        writeFileSync(packageJson, readFileSync(backupPackageJson, "utf8"));
+        rmSync(backupPackageJson, { force: true });
+      }
+      if (existsSync(backupBunLock)) {
+        writeFileSync(bunLock, readFileSync(backupBunLock, "utf8"));
+        rmSync(backupBunLock, { force: true });
+      }
+      throw error;
+    }
+
+    console.log(
+      `refresh-sdk-pin: ${bunLock} resolves ${ref.slice(0, 7)}; placeholder restored`,
     );
+  } catch (error) {
+    fail(`${error instanceof Error ? error.message : String(error)}`);
   } finally {
-    writeFileSync(packageJson, restorePlaceholder(read(packageJson), ref));
-    writeFileSync(bunLock, restorePlaceholder(read(bunLock), ref));
-    if (existsSync(nodeModules)) {
-      rmSync(nodeModules, { recursive: true, force: true });
+    // Clean up scratch directory
+    rmSync(scratchDir, { recursive: true, force: true });
+
+    // Clean up any node_modules in the template directory
+    const templateNodeModules = join(template, "node_modules");
+    if (existsSync(templateNodeModules)) {
+      rmSync(templateNodeModules, { recursive: true, force: true });
     }
   }
-
-  if (status !== 0) {
-    fail(
-      `bun ${RESOLVE_COMMAND.join(" ")} failed; template files were restored, re-run when fixed`,
-    );
-  }
-  const lockfile = read(bunLock);
-  if (!lockfileTupleMatches(lockfile, ref)) {
-    fail(
-      `${bunLock} resolved SDK tuple does not match ${ref.slice(0, 7)}; ` +
-        "inspect the lockfile and re-run",
-    );
-  }
-  if (!read(packageJson).includes(PLACEHOLDER)) {
-    fail(`${packageJson} lost the ${PLACEHOLDER} placeholder`);
-  }
-  console.log(
-    `refresh-sdk-pin: ${bunLock} resolves ${ref.slice(0, 7)}; placeholder restored`,
-  );
 }
 
 if (import.meta.main) {

@@ -43,11 +43,14 @@ import {
   cpSync,
   existsSync,
   mkdirSync,
+  mkdtempSync,
   readFileSync,
   readdirSync,
   renameSync,
+  rmSync,
   writeFileSync,
 } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -658,42 +661,65 @@ function main() {
   if (existsSync(target)) {
     fail(`target already exists: ${target} (refusing to overwrite)`);
   }
-  mkdirSync(dirname(target), { recursive: true });
-  cpSync(templateDir, target, {
-    recursive: true,
-    errorOnExist: true,
-    force: false,
-  });
 
-  const moduleDir = join(target, "lua", "@@PLUGIN_MODULE@@");
-  if (!existsSync(moduleDir)) {
-    fail("template is missing lua/@@PLUGIN_MODULE@@");
-  }
-  renameSync(moduleDir, join(target, "lua", moduleName));
+  // Create a temporary scratch directory for atomic generation
+  const targetParent = dirname(target);
+  const targetName = target.split(sep).pop();
+  mkdirSync(targetParent, { recursive: true });
+  const scratchDir = mkdtempSync(
+    join(tmpdir(), `bitty-generate-${targetName}-`),
+  );
 
-  const tokens = {
-    "@@PLUGIN_ID@@": id,
-    "@@PLUGIN_NAME@@": name,
-    "@@PLUGIN_VERSION@@": version,
-    "@@PLUGIN_DESCRIPTION@@": description,
-    "@@PLUGIN_MODULE@@": moduleName,
-    "@@PLUGIN_SDK_REF@@": PLUGIN_SDK_REF,
-  };
-  walkFiles(target, (file) => replacePlaceholders(file, tokens));
+  try {
+    // Copy template to scratch directory
+    cpSync(templateDir, scratchDir, {
+      recursive: true,
+      errorOnExist: false,
+      force: false,
+    });
 
-  let unresolved = false;
-  walkFiles(target, (file) => {
-    if (readFileSync(file, "utf8").includes(RESERVED_PLACEHOLDER_PREFIX)) {
-      console.error(`generate-plugin: unresolved placeholder in ${file}`);
-      unresolved = true;
+    // Rename module directory
+    const moduleDir = join(scratchDir, "lua", "@@PLUGIN_MODULE@@");
+    if (!existsSync(moduleDir)) {
+      fail("template is missing lua/@@PLUGIN_MODULE@@");
     }
-  });
-  if (unresolved) {
-    fail(`generated tree contains unresolved placeholders: ${target}`);
-  }
+    renameSync(moduleDir, join(scratchDir, "lua", moduleName));
 
-  console.log(`Generated ${id} ${version} at ${target}`);
-  console.log(`Next: cd ${target} && just check`);
+    // Apply placeholder substitutions
+    const tokens = {
+      "@@PLUGIN_ID@@": id,
+      "@@PLUGIN_NAME@@": name,
+      "@@PLUGIN_VERSION@@": version,
+      "@@PLUGIN_DESCRIPTION@@": description,
+      "@@PLUGIN_MODULE@@": moduleName,
+      "@@PLUGIN_SDK_REF@@": PLUGIN_SDK_REF,
+    };
+    walkFiles(scratchDir, (file) => replacePlaceholders(file, tokens));
+
+    // Verify no unresolved placeholders
+    let unresolved = false;
+    walkFiles(scratchDir, (file) => {
+      if (readFileSync(file, "utf8").includes(RESERVED_PLACEHOLDER_PREFIX)) {
+        console.error(`generate-plugin: unresolved placeholder in ${file}`);
+        unresolved = true;
+      }
+    });
+    if (unresolved) {
+      fail(`generated tree contains unresolved placeholders`);
+    }
+
+    // Atomically move scratch directory to target
+    renameSync(scratchDir, target);
+
+    console.log(`Generated ${id} ${version} at ${target}`);
+    console.log(`Next: cd ${target} && just check`);
+  } catch (error) {
+    // Clean up scratch directory on failure
+    if (existsSync(scratchDir)) {
+      rmSync(scratchDir, { recursive: true, force: true });
+    }
+    throw error;
+  }
 }
 
 if (import.meta.main) {
