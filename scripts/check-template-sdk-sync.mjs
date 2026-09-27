@@ -284,8 +284,9 @@ if (import.meta.main) {
 }
 
 /**
- * Validate SDK contract artifact hash (TPL-001, Issue #83).
+ * Validate SDK contract artifact hash (TPL-001, Issue #83/#100).
  * Ensures template stays synchronized with SDK contract changes.
+ * A missing or unparsable contract artifact is a hard failure (exit 1).
  */
 import { getContractHash } from "./read-sdk-contract.mjs";
 
@@ -296,7 +297,11 @@ try {
   console.log(`\nSDK Contract Hash: ${currentHash.slice(0, 16)}...`);
   console.log("✓ Contract artifact validated");
 } catch (error) {
-  // Contract validation is informational when contract isn't available
-  console.log(`\nSDK Contract: not available (${error.message})`);
-  console.log("⚠ Contract validation skipped (template can still generate)");
+  // Contract validation must fail closed (Issue #100)
+  console.error(`\nerror: SDK contract validation failed: ${error.message}`);
+  console.error("Template drift detection requires the SDK contract artifact.");
+  console.error(
+    "Ensure BITTY_WORKSPACE is set or the SDK is built at the expected location.",
+  );
+  process.exit(1);
 }

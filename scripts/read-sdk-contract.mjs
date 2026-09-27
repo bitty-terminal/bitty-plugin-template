@@ -50,27 +50,30 @@ const CONTRACT_EXISTS = existsSync(SDK_CONTRACT_PATH);
 
 export function readSdkContract() {
   if (!CONTRACT_EXISTS) {
-    // Return a minimal valid contract for testing when real contract isn't available
-    return {
-      format: "bitty-host-contract/v1",
-      plugin_api_version: "1.0.0",
-      capabilities: {
-        env_capability_prefix: "env.read:",
-      },
-      host_parity: {
-        namespaces: [
-          { namespace: "env", status: "deferred" },
-          { namespace: "services", status: "deferred" },
-          { namespace: "keymaps", status: "wired" },
-          { namespace: "tasks", status: "wired" },
-          { namespace: "services", status: "wired" },
-        ],
-      },
-    };
+    throw new Error(
+      `SDK contract artifact not found at ${SDK_CONTRACT_PATH}. ` +
+        `Set SDK_CONTRACT_PATH or BITTY_WORKSPACE environment variable, ` +
+        `or ensure the SDK artifact is built.`,
+    );
   }
 
-  const content = readFileSync(SDK_CONTRACT_PATH, "utf-8");
-  const contract = JSON.parse(content);
+  let content;
+  try {
+    content = readFileSync(SDK_CONTRACT_PATH, "utf-8");
+  } catch (error) {
+    throw new Error(
+      `Failed to read SDK contract at ${SDK_CONTRACT_PATH}: ${error.message}`,
+    );
+  }
+
+  let contract;
+  try {
+    contract = JSON.parse(content);
+  } catch (error) {
+    throw new Error(
+      `Failed to parse SDK contract at ${SDK_CONTRACT_PATH}: ${error.message}`,
+    );
+  }
 
   // Validate required fields
   if (contract.format !== "bitty-host-contract/v1") {
@@ -90,11 +93,21 @@ export function readSdkContract() {
 
 export function getContractHash() {
   if (!CONTRACT_EXISTS) {
-    // Return a placeholder hash when contract isn't available
-    return "0000000000000000000000000000000000000000000000000000000000000000";
+    throw new Error(
+      `SDK contract artifact not found at ${SDK_CONTRACT_PATH}. ` +
+        `Cannot compute hash for missing contract.`,
+    );
   }
 
-  const content = readFileSync(SDK_CONTRACT_PATH, "utf-8");
+  let content;
+  try {
+    content = readFileSync(SDK_CONTRACT_PATH, "utf-8");
+  } catch (error) {
+    throw new Error(
+      `Failed to read SDK contract for hash at ${SDK_CONTRACT_PATH}: ${error.message}`,
+    );
+  }
+
   return createHash("sha256").update(content).digest("hex");
 }
 
