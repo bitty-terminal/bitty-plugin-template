@@ -1,0 +1,4 @@
+# Generated, content-addressed SDK contract snapshot (Issue #100).
+# Its bytes feed VENDORED_CONTRACT_SHA256, so reformatting would change the
+# digest. Regenerate with `just vendor-sdk-contract`, never by hand.
+scripts/vendor/host-contract.json

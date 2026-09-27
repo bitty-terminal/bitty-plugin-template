@@ -1,0 +1,264 @@
+{
+  "format": "bitty-host-contract/v1",
+  "sdk_revision": "e1723b60cc94d3abc18821c9e6b14c6c88f33add",
+  "generated_at": "vendored",
+  "content_hash": "8cec240d9b25a409925f1fa252b5cada6cf851e68fb345ffa273942bcbb1bf0f",
+  "plugin_api_version": "1.0.0",
+  "host_parity": {
+    "repository": "bitty",
+    "commit": "b8673937b6825ae4e7f1c35f4adc152ffd171f87",
+    "pr": 1391,
+    "namespaces": [
+      {
+        "namespace": "commands",
+        "status": "wired"
+      },
+      {
+        "namespace": "events",
+        "status": "wired"
+      },
+      {
+        "namespace": "keymaps",
+        "status": "wired"
+      },
+      {
+        "namespace": "settings",
+        "status": "wired"
+      },
+      {
+        "namespace": "store",
+        "status": "wired"
+      },
+      {
+        "namespace": "notify",
+        "status": "wired"
+      },
+      {
+        "namespace": "env",
+        "status": "deferred"
+      },
+      {
+        "namespace": "services",
+        "status": "wired"
+      },
+      {
+        "namespace": "ui",
+        "status": "wired"
+      },
+      {
+        "namespace": "terminal",
+        "status": "wired"
+      },
+      {
+        "namespace": "tasks",
+        "status": "wired"
+      },
+      {
+        "namespace": "timers",
+        "status": "wired"
+      }
+    ],
+    "deferred_namespaces": [
+      "env"
+    ]
+  },
+  "capabilities": {
+    "gated_surface": [
+      {
+        "surface": "bitty.notify.show",
+        "capability": "platform.notify"
+      },
+      {
+        "surface": "bitty.ui.mount",
+        "capability": "ui.rich"
+      },
+      {
+        "surface": "bitty.ui.update",
+        "capability": "ui.rich"
+      },
+      {
+        "surface": "bitty.ui.mount:overlay",
+        "capability": "ui.overlay"
+      },
+      {
+        "surface": "bitty.terminal.snapshot",
+        "capability": "terminal.semantic-read"
+      },
+      {
+        "surface": "bitty.env.get",
+        "capability": "env:<KEY>"
+      },
+      {
+        "surface": "bitty.env.has",
+        "capability": "env:<KEY>"
+      }
+    ],
+    "env_prefix": "env:"
+  },
+  "surface": {
+    "functions": [
+      "commands.register",
+      "events.subscribe",
+      "keymaps.suggest",
+      "settings.get",
+      "settings.set",
+      "store.get",
+      "store.set",
+      "notify.show",
+      "env.get",
+      "env.has",
+      "services.get",
+      "services.provide",
+      "ui.mount",
+      "ui.update",
+      "terminal.snapshot",
+      "tasks.spawn",
+      "tasks.cancel",
+      "timers.create",
+      "timers.cancel"
+    ],
+    "event_kinds": [
+      {
+        "kind": "plugin.activated",
+        "class": "lifecycle",
+        "coalescable": false
+      },
+      {
+        "kind": "plugin.suspended",
+        "class": "lifecycle",
+        "coalescable": false
+      },
+      {
+        "kind": "plugin.disposed",
+        "class": "lifecycle",
+        "coalescable": false
+      },
+      {
+        "kind": "handler.violation",
+        "class": "lifecycle",
+        "coalescable": false
+      },
+      {
+        "kind": "terminal.opened",
+        "class": "observation",
+        "coalescable": false
+      },
+      {
+        "kind": "terminal.closed",
+        "class": "observation",
+        "coalescable": false
+      },
+      {
+        "kind": "terminal.title-changed",
+        "class": "observation",
+        "coalescable": true
+      },
+      {
+        "kind": "terminal.cwd-changed",
+        "class": "observation",
+        "coalescable": true
+      },
+      {
+        "kind": "terminal.bell",
+        "class": "observation",
+        "coalescable": false
+      },
+      {
+        "kind": "focus.changed",
+        "class": "observation",
+        "coalescable": true
+      },
+      {
+        "kind": "selection.changed",
+        "class": "observation",
+        "coalescable": true
+      },
+      {
+        "kind": "process.exited",
+        "class": "observation",
+        "coalescable": false
+      },
+      {
+        "kind": "config.reloaded",
+        "class": "observation",
+        "coalescable": false
+      },
+      {
+        "kind": "intercept.command-dispatch",
+        "class": "interception",
+        "coalescable": false
+      },
+      {
+        "kind": "intercept.terminal-spawn",
+        "class": "interception",
+        "coalescable": false
+      },
+      {
+        "kind": "intercept.paste",
+        "class": "interception",
+        "coalescable": false
+      },
+      {
+        "kind": "intercept.open-url",
+        "class": "interception",
+        "coalescable": false
+      }
+    ]
+  },
+  "patterns": {
+    "command_id": "^[a-z][a-z0-9-]{0,63}$",
+    "store_key": "^[a-z0-9][a-z0-9._-]{0,127}$",
+    "env_key": "^[A-Z_][A-Z0-9_]*$"
+  },
+  "limits": {
+    "event_max_bytes": 8192,
+    "env_max_value_bytes": 4096,
+    "mock": {
+      "TASKS_MAX": 64,
+      "TIMERS_MAX": 32,
+      "STORE_QUOTA_BYTES": 262144,
+      "STORE_MAX_VALUE_BYTES": 8192,
+      "STORE_MAX_DEPTH": 8,
+      "STORE_MAX_NODES": 1024,
+      "STORE_KEY_MAX_BYTES": 128,
+      "SNAPSHOT_MAX_BYTES": 262144,
+      "COMMAND_SCHEMA_MAX_BYTES": 16384,
+      "COMMAND_SCHEMA_MAX_DEPTH": 16,
+      "COMMAND_ID_MAX_BYTES": 64,
+      "UI_MAX_DEPTH": 16,
+      "TIMER_MAX_DELAY_MS": 86400000,
+      "CHORD_MAX_BYTES": 64
+    }
+  },
+  "ui": {
+    "slots": [
+      "terminal",
+      "top",
+      "bottom",
+      "left",
+      "right",
+      "tabline",
+      "statusline",
+      "overlay"
+    ],
+    "exclusive_claim_slots": [
+      "tabline"
+    ],
+    "v1_node_kinds": [
+      "Text",
+      "Row",
+      "Column",
+      "List"
+    ],
+    "v1_excluded_node_kinds": [
+      "Block",
+      "Image",
+      "CodeBlock",
+      "Table",
+      "Rule"
+    ]
+  },
+  "snapshot": {
+    "scope_only": "semantic"
+  }
+}

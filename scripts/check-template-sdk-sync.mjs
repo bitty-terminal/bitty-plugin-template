@@ -301,7 +301,8 @@ try {
   console.error(`\nerror: SDK contract validation failed: ${error.message}`);
   console.error("Template drift detection requires the SDK contract artifact.");
   console.error(
-    "Ensure BITTY_WORKSPACE is set or the SDK is built at the expected location.",
+    "The vendored snapshot should exist at scripts/vendor/host-contract.json; " +
+      "re-run just vendor-sdk-contract after bumping the SDK pin.",
   );
   process.exit(1);
 }
