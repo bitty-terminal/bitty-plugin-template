@@ -62,6 +62,15 @@ template-sdk-sync:
 # Aggregate gate run locally and in CI.
 check: lint fmt-check test template-sdk-sync
 
+# Re-vendor the SDK host contract snapshot from the pinned SDK commit
+# (Issue #100). Regenerates scripts/vendor/host-contract.json and its recorded
+# SHA-256 digest in one atomic step, so contract validation stays
+# deterministic and offline. Run after every PLUGIN_SDK_REF bump. Requires the
+# pinned SDK checkout: set SDK_HOST_SURFACE to its src/host-surface.ts or
+# BITTY_WORKSPACE to the workspace root.
+vendor-sdk-contract:
+    bun scripts/vendor-sdk-contract.mjs
+
 # Regenerate template/bun.lock for the pinned bitty-plugin-lint commit
 # (CTX-0017). Run after every PLUGIN_SDK_REF bump: the script substitutes the
 # concrete SHA into template/package.json and template/bun.lock, re-resolves

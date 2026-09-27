@@ -7,40 +7,44 @@
 
 import { readFileSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
-import { join, dirname, resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 /**
+ * Vendored SDK contract snapshot (Issue #100).
+ *
+ * Generated from the frozen SDK pipeline commit with
+ * `bun scripts/export-host-contract.ts` and committed with its SHA-256
+ * digest. This makes CI deterministic and offline: the artifact is present
+ * in the checkout, so a missing or corrupted snapshot is a hard failure
+ * rather than an accidental skip.
+ */
+export const VENDORED_CONTRACT_REL = "vendor/host-contract.json";
+
+/** SHA-256 of the vendored artifact bytes; updated only with the snapshot. */
+export const VENDORED_CONTRACT_SHA256 =
+  "8de6c80ff977a5d62ed0a91d27e4415ccc2b32b698a40dee14003d9e176baa87";
+
+/**
  * Determine the SDK contract path using the following precedence:
- * 1. SDK_CONTRACT_PATH environment variable (explicit path)
- * 2. BITTY_WORKSPACE environment variable with standard relative path
- * 3. Relative path from script location (assuming standard workspace layout)
+ * 1. `SDK_CONTRACT_PATH` — explicit local override (ad-hoc inspection only).
+ * 2. The vendored snapshot committed under `scripts/vendor/` (hermetic
+ *    default: CI and fresh clones always have it).
+ *
+ * Ambient variables such as `BITTY_WORKSPACE` are intentionally ignored so
+ * contract validation is deterministic across developer machines and CI.
  */
 function resolveSdkContractPath() {
-  // 1. Explicit environment variable
+  // 1. Explicit environment variable override.
   if (process.env.SDK_CONTRACT_PATH) {
     return process.env.SDK_CONTRACT_PATH;
   }
 
-  // 2. BITTY_WORKSPACE with standard path
-  if (process.env.BITTY_WORKSPACE) {
-    return join(
-      process.env.BITTY_WORKSPACE,
-      "bitty-plugins/sdk/bitty-plugin-sdk/dist/host-contract.json",
-    );
-  }
-
-  // 3. Try relative path from script location (assuming workspace layout)
-  // Script is in <workspace>/bitty-plugins/template/bitty-plugin-template/scripts/
-  // SDK is in <workspace>/bitty-plugins/sdk/bitty-plugin-sdk/dist/
-  const relativePath = resolve(
-    __dirname,
-    "../../../../sdk/bitty-plugin-sdk/dist/host-contract.json",
-  );
-  return relativePath;
+  // 2. Vendored snapshot beside this script (offline, deterministic).
+  return resolve(__dirname, VENDORED_CONTRACT_REL);
 }
 
 const SDK_CONTRACT_PATH = resolveSdkContractPath();
@@ -48,29 +52,41 @@ const SDK_CONTRACT_PATH = resolveSdkContractPath();
 // Check if contract exists
 const CONTRACT_EXISTS = existsSync(SDK_CONTRACT_PATH);
 
-export function readSdkContract() {
+/** True when the artifact in use is the vendored snapshot (not an override). */
+function usingVendoredSnapshot() {
+  return SDK_CONTRACT_PATH === resolve(__dirname, VENDORED_CONTRACT_REL);
+}
+
+/** Read the resolved artifact bytes; a missing file is a hard failure. */
+function readContractBytes() {
   if (!CONTRACT_EXISTS) {
-    // Return a minimal valid contract for testing when real contract isn't available
-    return {
-      format: "bitty-host-contract/v1",
-      plugin_api_version: "1.0.0",
-      capabilities: {
-        env_capability_prefix: "env.read:",
-      },
-      host_parity: {
-        namespaces: [
-          { namespace: "env", status: "deferred" },
-          { namespace: "services", status: "deferred" },
-          { namespace: "keymaps", status: "wired" },
-          { namespace: "tasks", status: "wired" },
-          { namespace: "services", status: "wired" },
-        ],
-      },
-    };
+    throw new Error(
+      `SDK contract artifact not found at ${SDK_CONTRACT_PATH}. ` +
+        `The vendored snapshot should exist in-repo; ` +
+        `set SDK_CONTRACT_PATH or BITTY_WORKSPACE to override locally.`,
+    );
   }
 
-  const content = readFileSync(SDK_CONTRACT_PATH, "utf-8");
-  const contract = JSON.parse(content);
+  try {
+    return readFileSync(SDK_CONTRACT_PATH, "utf-8");
+  } catch (error) {
+    throw new Error(
+      `Failed to read SDK contract at ${SDK_CONTRACT_PATH}: ${error.message}`,
+    );
+  }
+}
+
+export function readSdkContract() {
+  const content = readContractBytes();
+
+  let contract;
+  try {
+    contract = JSON.parse(content);
+  } catch (error) {
+    throw new Error(
+      `Failed to parse SDK contract at ${SDK_CONTRACT_PATH}: ${error.message}`,
+    );
+  }
 
   // Validate required fields
   if (contract.format !== "bitty-host-contract/v1") {
@@ -89,13 +105,20 @@ export function readSdkContract() {
 }
 
 export function getContractHash() {
-  if (!CONTRACT_EXISTS) {
-    // Return a placeholder hash when contract isn't available
-    return "0000000000000000000000000000000000000000000000000000000000000000";
+  const content = readContractBytes();
+  const hash = createHash("sha256").update(content).digest("hex");
+
+  // The vendored snapshot is content-addressed: verify it against the
+  // recorded digest so a silently edited artifact fails closed.
+  if (usingVendoredSnapshot() && hash !== VENDORED_CONTRACT_SHA256) {
+    throw new Error(
+      `Vendored SDK contract digest mismatch at ${SDK_CONTRACT_PATH}: ` +
+        `expected ${VENDORED_CONTRACT_SHA256}, got ${hash}. ` +
+        `Re-vendor the snapshot and update VENDORED_CONTRACT_SHA256.`,
+    );
   }
 
-  const content = readFileSync(SDK_CONTRACT_PATH, "utf-8");
-  return createHash("sha256").update(content).digest("hex");
+  return hash;
 }
 
 export function getCapabilityExample(contract) {
