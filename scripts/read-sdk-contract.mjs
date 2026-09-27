@@ -7,15 +7,46 @@
 
 import { readFileSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
-import { join } from "node:path";
+import { join, dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
-// Absolute path from BITTY_WORKSPACE
-const BITTY_WORKSPACE =
-  process.env.BITTY_WORKSPACE || "/mnt/data/Workspace/Projects/bitty-terminal";
-const SDK_CONTRACT_PATH = join(
-  BITTY_WORKSPACE,
-  "bitty-plugins/sdk/bitty-plugin-sdk/dist/host-contract.json",
-);
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+/**
+ * Determine the SDK contract path using the following precedence:
+ * 1. SDK_CONTRACT_PATH environment variable (explicit path)
+ * 2. BITTY_WORKSPACE environment variable with standard relative path
+ * 3. Relative path from script location (assuming standard workspace layout)
+ */
+function resolveSdkContractPath() {
+  // 1. Explicit environment variable
+  if (process.env.SDK_CONTRACT_PATH) {
+    return process.env.SDK_CONTRACT_PATH;
+  }
+
+  // 2. BITTY_WORKSPACE with standard path
+  if (process.env.BITTY_WORKSPACE) {
+    return join(
+      process.env.BITTY_WORKSPACE,
+      "bitty-plugins/sdk/bitty-plugin-sdk/dist/host-contract.json",
+    );
+  }
+
+  // 3. Try relative path from script location (assuming workspace layout)
+  // Script is in <workspace>/bitty-plugins/template/bitty-plugin-template/scripts/
+  // SDK is in <workspace>/bitty-plugins/sdk/bitty-plugin-sdk/dist/
+  const relativePath = resolve(
+    __dirname,
+    "../../../../sdk/bitty-plugin-sdk/dist/host-contract.json",
+  );
+  return relativePath;
+}
+
+const SDK_CONTRACT_PATH = resolveSdkContractPath();
+
+// Check if contract exists
+const CONTRACT_EXISTS = existsSync(SDK_CONTRACT_PATH);
 
 // Check if contract exists
 const CONTRACT_EXISTS = existsSync(SDK_CONTRACT_PATH);
