@@ -37,7 +37,7 @@
  */
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
-import * as TOML from "@iarna/toml";
+import { parse as parseToml } from "smol-toml";
 
 /** Native in-process artifacts the host rejects at activation, never loads. */
 export const NATIVE_ARTIFACT_EXTENSIONS = ["so", "dll", "dylib", "node"];
@@ -78,21 +78,37 @@ function parseArgs(argv) {
 
 /**
  * Read the plugin id from a manifest body (`[plugin] id = "..."`).
- * Returns null when the field is absent rather than guessing.
- *
- * Parses the TOML structure to ensure the id is under [plugin], not
- * another section like [dependencies].
+ * Parses the TOML structurally and rejects missing, duplicate, or ambiguous
+ * [plugin] tables. Returns null when the field is absent or invalid.
  */
 export function manifestId(body) {
+  let parsed;
   try {
-    const parsed = TOML.parse(body);
-    if (parsed.plugin && typeof parsed.plugin.id === "string") {
-      return parsed.plugin.id;
-    }
-    return null;
-  } catch {
+    parsed = parseToml(body);
+  } catch (error) {
+    // Invalid TOML syntax fails; return null instead of propagating
     return null;
   }
+
+  // Require exactly one [plugin] table
+  if (!parsed || typeof parsed !== "object") {
+    return null;
+  }
+
+  const pluginTable = parsed.plugin;
+  if (!pluginTable || typeof pluginTable !== "object") {
+    return null;
+  }
+
+  // A duplicate [plugin] table is a TOML syntax error (the spec forbids
+  // redefining a table), so smol-toml's parseToml() above already throws
+  // and the catch block returns null before this line runs.
+  const id = pluginTable.id;
+  if (typeof id !== "string" || id.length === 0) {
+    return null;
+  }
+
+  return id;
 }
 
 /**
