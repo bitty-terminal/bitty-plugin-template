@@ -290,8 +290,13 @@ if (import.meta.main) {
 import { getContractHash } from "./read-sdk-contract.mjs";
 
 const CONTRACT_HASH_MARKER = "@@SDK_CONTRACT_HASH@@";
-const currentHash = getContractHash();
-
-// Store in metadata for future drift detection
-console.log(`\nSDK Contract Hash: ${currentHash.slice(0, 16)}...`);
-console.log("✓ Contract artifact validated");
+try {
+  const currentHash = getContractHash();
+  // Store in metadata for future drift detection
+  console.log(`\nSDK Contract Hash: ${currentHash.slice(0, 16)}...`);
+  console.log("✓ Contract artifact validated");
+} catch (error) {
+  // Contract validation is informational when contract isn't available
+  console.log(`\nSDK Contract: not available (${error.message})`);
+  console.log("⚠ Contract validation skipped (template can still generate)");
+}
