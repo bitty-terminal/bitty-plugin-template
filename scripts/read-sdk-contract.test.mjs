@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 /**
  * Test SDK contract consumption (TPL-001).
- * 
+ *
  * Issue #100: contract must fail closed when missing.
  */
 
@@ -20,13 +20,13 @@ function contractExists() {
   if (process.env.BITTY_WORKSPACE) {
     const path = join(
       process.env.BITTY_WORKSPACE,
-      "bitty-plugins/sdk/bitty-plugin-sdk/dist/host-contract.json"
+      "bitty-plugins/sdk/bitty-plugin-sdk/dist/host-contract.json",
     );
     return existsSync(path);
   }
   const relativePath = resolve(
     __dirname,
-    "../../../../sdk/bitty-plugin-sdk/dist/host-contract.json"
+    "../../../../sdk/bitty-plugin-sdk/dist/host-contract.json",
   );
   return existsSync(relativePath);
 }
