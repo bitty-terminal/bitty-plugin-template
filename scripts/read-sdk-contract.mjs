@@ -48,9 +48,6 @@ const SDK_CONTRACT_PATH = resolveSdkContractPath();
 // Check if contract exists
 const CONTRACT_EXISTS = existsSync(SDK_CONTRACT_PATH);
 
-// Check if contract exists
-const CONTRACT_EXISTS = existsSync(SDK_CONTRACT_PATH);
-
 export function readSdkContract() {
   if (!CONTRACT_EXISTS) {
     // Return a minimal valid contract for testing when real contract isn't available
