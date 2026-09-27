@@ -100,9 +100,9 @@ export function manifestId(body) {
     return null;
   }
 
-  // Multiple [plugin] tables would be merged by the parser, but TOML spec
-  // forbids duplicate tables. smol-toml merges them, so we can't detect
-  // duplicates here, but we can validate the id field exists and is a string.
+  // A duplicate [plugin] table is a TOML syntax error (the spec forbids
+  // redefining a table), so smol-toml's parseToml() above already throws
+  // and the catch block returns null before this line runs.
   const id = pluginTable.id;
   if (typeof id !== "string" || id.length === 0) {
     return null;

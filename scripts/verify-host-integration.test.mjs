@@ -89,6 +89,12 @@ describe("manifestId", () => {
     const ambiguous = '[other]\nid = "wrong.id"\n[plugin]\nid = "correct.id"\n';
     expect(manifestId(ambiguous)).toBe("correct.id");
   });
+
+  test("returns null on a duplicate [plugin] table (TOML forbids redefinition)", () => {
+    const duplicate =
+      '[plugin]\nid = "first.one"\n[plugin]\nid = "second.one"\n';
+    expect(manifestId(duplicate)).toBeNull();
+  });
 });
 
 describe("moduleRootFor (mirrors the host)", () => {
