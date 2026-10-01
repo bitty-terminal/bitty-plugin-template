@@ -1,46 +1,62 @@
 # Quality gates for @@PLUGIN_NAME@@ (@@PLUGIN_ID@@).
 #
-# Generated from bitty-plugin-template. Dependencies live in package.json and
-# are locked in bun.lock; `just install` materializes them. The manifest gate
-# runs the authoritative SDK linter (bitty-plugin-lint, pinned by commit), not
-# a vendored re-implementation. Every gate below runs offline once install has
-# completed.
+# Generated from bitty-plugin-template. The plugin itself is Lua only: the
+# host loads `bitty-plugin.toml` and the `lua/` module root, nothing else.
+# Every pin lives in this file. The manifest gate runs the authoritative SDK
+# linter (bitty-plugin-lint) fetched by commit through `bunx`; the Lua gate
+# parses every source with the Lua 5.4 compiler. Extra tooling (formatters,
+# Markdown lint, commit hooks, LuaLS, dependency bots) is optional and up to
+# the plugin author; none of it is required here.
 
-# Pinned parser version; keep identical to the luaparse devDependency in
-# package.json.
-luaparse_pin := "0.3.1"
+# Pinned bitty-plugin-sdk commit that provides `bitty-plugin-lint`. Bump it
+# deliberately when you move to a newer SDK manifest contract.
+sdk_ref := "@@PLUGIN_SDK_REF@@"
+
+# Lua 5.4 compiler used as a parse-only checker (`-p` writes no output).
+# Override with `LUAC=/path/to/luac5.4 just check` when your platform names
+# the binary differently.
+luac := env("LUAC", "luac5.4")
 
 # List available recipes.
 default:
     @just --list
 
-# Install pinned dev dependencies from bun.lock. This is the only gate step
-# that may use the network; install once, then `just check` is offline.
-install:
-    bun install --frozen-lockfile
+# The manifest schema is owned by bitty-docs, not by this repository. The
+# first run downloads the pinned SDK into the bunx cache (network required);
+# later runs reuse the cache.
+# Validate bitty-plugin.toml with the SDK linter pinned by `sdk_ref` (R-SDK-2).
+manifest:
+    bunx --bun --package github:bitty-terminal/bitty-plugin-sdk#{{ sdk_ref }} bitty-plugin-lint bitty-plugin.toml
 
-# Fail closed when dependencies are absent, so a gate never silently fetches
-# from the network. Run `just install` first.
-deps:
-    @test -d node_modules || { echo "dependencies are not installed; run 'just install'" >&2; exit 1; }
+# Fails when no source is found, so a moved or emptied module root cannot
+# pass silently.
+# Parse every Lua source under lua/ with the Lua 5.4 compiler.
+lua:
+    #!/usr/bin/env sh
+    set -eu
+    count=$(find lua -type f -name '*.lua' | wc -l | tr -d ' ')
+    if [ "$count" -eq 0 ]; then
+        echo "lua: no Lua sources under lua/" >&2
+        exit 1
+    fi
+    find lua -type f -name '*.lua' -exec '{{ luac }}' -p {} +
+    echo "lua: parsed $count file(s) with {{ luac }}"
 
-# Validate bitty-plugin.toml with the authoritative SDK linter (R-SDK-2),
-# pinned by commit in package.json and bun.lock. The manifest schema is owned
-# by bitty-docs, not by this repository.
-manifest: deps
-    @test -x node_modules/.bin/bitty-plugin-lint || { echo "bitty-plugin-lint is not installed; run 'just install'" >&2; exit 1; }
-    bun run bitty-plugin-lint bitty-plugin.toml
+# The checker must exist and must reject an invalid snippet, so a missing or
+# no-op checker cannot make `just lua` pass.
+# Fail-closed control: the Lua checker must reject invalid input.
+lua-control:
+    #!/usr/bin/env sh
+    set -eu
+    if ! command -v '{{ luac }}' >/dev/null 2>&1; then
+        echo "lua-control: '{{ luac }}' not found; install Lua 5.4" >&2
+        exit 1
+    fi
+    if printf 'local =\n' | '{{ luac }}' -p - 2>/dev/null; then
+        echo "lua-control: '{{ luac }}' accepted invalid Lua" >&2
+        exit 1
+    fi
+    echo "lua-control: '{{ luac }}' rejects invalid Lua"
 
-# Parse the Lua entry point with a pinned Lua 5.1 grammar parser.
-lua: deps
-    bunx --bun luaparse@{{luaparse_pin}} --quiet --file lua/@@PLUGIN_MODULE@@/init.lua
-
-# Fail-closed control for the `lua` gate: the same pinned parser must reject an
-# invalid snippet. `luaparse` exits 0 on empty input, so without this control a
-# recipe that lost its `--file` argument would silently pass rather than parse
-# the generated entry point.
-lua-control: deps
-    @! bunx --bun luaparse@{{luaparse_pin}} --quiet --code 'local ='
-
-# Aggregate gate run locally and in CI (after `just install`).
+# Aggregate gate run locally and in CI.
 check: manifest lua lua-control

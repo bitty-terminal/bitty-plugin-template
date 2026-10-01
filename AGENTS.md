@@ -78,6 +78,14 @@
   update strategy, and release flow open until accepted by reviewable contracts.
 - Generated output must use least privilege, explicit capabilities, safe
   examples, deterministic checks, and clear replacement instructions.
+- Generated plugins are Lua only (owner directive, CTX-0047): `template/`
+  holds the manifest, `lua/`, README, `justfile`, `.gitignore`, and CI, and
+  nothing else. Never generate `package.json`, lockfiles, or optional author
+  tooling (formatters, Markdown lint, commit hooks, LuaLS, dependency bots).
+  This repository's own `scripts/`, tests, and bun dev dependencies are
+  template tooling and stay. The SDK pin has one source of truth,
+  `PLUGIN_SDK_REF` in `scripts/generate-plugin.mjs`, substituted into the
+  generated `justfile` `sdk_ref`.
 - Never include install-time code execution, ambient OS authority, native in-
   process escape hatches, embedded secrets, or permissive allow-all defaults.
 - Generated workflows must minimize token permissions, isolate untrusted input,

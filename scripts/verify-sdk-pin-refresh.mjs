@@ -1,14 +1,19 @@
 #!/usr/bin/env bun
 /**
- * End-to-end check that `refresh-sdk-pin` re-resolves a changed SDK pin.
+ * End-to-end check that a changed SDK pin flows through the Lua-only scaffold.
  *
- * Copies `template/package.json` and `template/bun.lock` into a scratch
- * directory, runs the real `scripts/refresh-sdk-pin.mjs` against it with an
- * alternate SDK commit, and asserts the lockfile's resolved tuple moved to the
- * new short SHA (and away from the current pin) with the
- * `@@PLUGIN_SDK_REF@@` placeholder restored and `node_modules` removed. This
- * is the regression guard for PX-0103: a plain `bun install` would leave the
- * resolved tuple stale even though the requested spec changed.
+ * Generated plugins carry no lockfile: the generated `justfile` declares
+ * `sdk_ref` and `just manifest` resolves that commit through `bunx`. This
+ * check runs the real `scripts/refresh-sdk-pin.mjs` with an alternate SDK
+ * commit and asserts that:
+ *
+ *   - the alternate commit resolves and lints the template manifest;
+ *   - the tracked `template/justfile` still declares the
+ *     `@@PLUGIN_SDK_REF@@` placeholder and is byte-identical afterwards.
+ *
+ * It replaces the PX-0103 lockfile re-resolution guard: with no lockfile in
+ * the generated tree there is no stale resolved tuple to detect, so what
+ * remains is proving a bumped ref is actually fetchable and lint-clean.
  *
  * Network: required (resolves the alternate commit from GitHub). When the SDK
  * remote is unreachable the check prints `SKIP` and exits 0, so it is safe to
@@ -19,13 +24,12 @@
  *   bun scripts/verify-sdk-pin-refresh.mjs   # or: just verify-sdk-pin
  */
 import { spawnSync } from "node:child_process";
-import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { PLUGIN_SDK_REF } from "./generate-plugin.mjs";
-import { PLACEHOLDER, lockfileTupleMatches } from "./refresh-sdk-pin.mjs";
+import { justfileDeclaresSdkRef } from "./refresh-sdk-pin.mjs";
 
 /** Pushed ancestor of SDK `main`; used as the simulated "new" pin. */
 const ALTERNATE_PLUGIN_SDK_REF = "77b2c57b0aa62c43e87af14b84ce8098f5e906db";
@@ -33,7 +37,7 @@ const SDK_REMOTE = "https://github.com/bitty-terminal/bitty-plugin-sdk";
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const REFRESH_SCRIPT = join(SCRIPT_DIR, "refresh-sdk-pin.mjs");
-const TEMPLATE_DIR = join(SCRIPT_DIR, "..", "template");
+const TEMPLATE_JUSTFILE = join(SCRIPT_DIR, "..", "template", "justfile");
 
 /** True when the SDK git remote can be reached (git resolves HEAD). */
 function sdkRemoteReachable() {
@@ -43,19 +47,30 @@ function sdkRemoteReachable() {
   return probe.status === 0;
 }
 
-/**
- * Run the check in `dir`; returns `{ status, message }` where status is one of
- * `ok`, `skip`, or `fail`.
- */
-function check(dir) {
-  cpSync(join(TEMPLATE_DIR, "package.json"), join(dir, "package.json"));
-  cpSync(join(TEMPLATE_DIR, "bun.lock"), join(dir, "bun.lock"));
-
+/** Run the check; returns `{ status, message }` (`ok`, `skip`, or `fail`). */
+function check() {
+  if (ALTERNATE_PLUGIN_SDK_REF === PLUGIN_SDK_REF) {
+    return {
+      status: "fail",
+      message: "alternate SDK ref equals the current pin; pick another commit",
+    };
+  }
+  const before = readFileSync(TEMPLATE_JUSTFILE, "utf8");
   const refresh = spawnSync(
     "bun",
-    [REFRESH_SCRIPT, "--ref", ALTERNATE_PLUGIN_SDK_REF, "--template", dir],
+    [REFRESH_SCRIPT, "--ref", ALTERNATE_PLUGIN_SDK_REF],
     { stdio: "inherit" },
   );
+  const after = readFileSync(TEMPLATE_JUSTFILE, "utf8");
+  if (after !== before) {
+    return { status: "fail", message: "template/justfile was modified" };
+  }
+  if (!justfileDeclaresSdkRef(after)) {
+    return {
+      status: "fail",
+      message: "template/justfile lost the sdk_ref placeholder",
+    };
+  }
   if (refresh.error || refresh.status !== 0) {
     const detail = refresh.error
       ? refresh.error.message
@@ -68,49 +83,14 @@ function check(dir) {
       message: `${detail} with the SDK remote reachable`,
     };
   }
-
-  const lockfile = readFileSync(join(dir, "bun.lock"), "utf8");
-  if (!lockfileTupleMatches(lockfile, ALTERNATE_PLUGIN_SDK_REF)) {
-    return {
-      status: "fail",
-      message: `lockfile did not re-resolve to ${ALTERNATE_PLUGIN_SDK_REF.slice(0, 7)}`,
-    };
-  }
-  if (lockfileTupleMatches(lockfile, PLUGIN_SDK_REF)) {
-    return {
-      status: "fail",
-      message: `lockfile still matches the old pin ${PLUGIN_SDK_REF.slice(0, 7)}`,
-    };
-  }
-  for (const file of ["package.json", "bun.lock"]) {
-    if (!readFileSync(join(dir, file), "utf8").includes(PLACEHOLDER)) {
-      return {
-        status: "fail",
-        message: `${file} did not restore the placeholder`,
-      };
-    }
-  }
-  if (existsSync(join(dir, "node_modules"))) {
-    return {
-      status: "fail",
-      message: "node_modules was not removed from the scratch template",
-    };
-  }
   return {
     status: "ok",
-    message: `re-resolved ${PLUGIN_SDK_REF.slice(0, 7)} -> ${ALTERNATE_PLUGIN_SDK_REF.slice(0, 7)}`,
+    message: `pin ${PLUGIN_SDK_REF.slice(0, 7)} -> ${ALTERNATE_PLUGIN_SDK_REF.slice(0, 7)} resolves and lints; template unchanged`,
   };
 }
 
 function main() {
-  const dir = mkdtempSync(join(tmpdir(), "bitty-sdk-pin-"));
-  let result;
-  try {
-    result = check(dir);
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
-
+  const result = check();
   if (result.status === "ok") {
     console.log(`verify-sdk-pin-refresh: OK ${result.message}`);
     return;

@@ -52,8 +52,9 @@ test:
     bun test
 
 # Fail when the template scaffold drifts from the frozen SDK generation
-# pipeline (CTX-0036, R-SDK-2 drift rule): the SDK pin, the resolved lockfile
-# tuple, the pending-host flags (WIRED keymaps/tasks, DEFERRED services/env,
+# pipeline (CTX-0036, R-SDK-2 drift rule): the SDK pin and its `sdk_ref`
+# placeholder in template/justfile, the Lua-only generated tree (CTX-0047),
+# the pending-host flags (WIRED keymaps/tasks, DEFERRED services/env,
 # spawn v1-OUT), and the least-privilege defaults. Offline; part of
 # `just check`.
 template-sdk-sync:
@@ -71,21 +72,22 @@ check: lint fmt-check test template-sdk-sync
 vendor-sdk-contract:
     bun scripts/vendor-sdk-contract.mjs
 
-# Regenerate template/bun.lock for the pinned bitty-plugin-lint commit
-# (CTX-0017). Run after every PLUGIN_SDK_REF bump: the script substitutes the
-# concrete SHA into template/package.json and template/bun.lock, re-resolves
-# the git dependency with `bun update bitty-plugin-sdk` (a bare `bun install`
-# would reuse the stale lockfile entry), restores the @@PLUGIN_SDK_REF@@
-# placeholder, and verifies the resolved tuple matches the pin. Network
-# required; `bun test` fails on the same drift and is the offline guard.
+# Prove the pinned bitty-plugin-lint commit (PLUGIN_SDK_REF in
+# scripts/generate-plugin.mjs, the single SDK pin source of truth) resolves
+# and lints the template manifest. Generated plugins are Lua only and carry no
+# lockfile (CTX-0047): the generator substitutes the pin into the generated
+# justfile's `sdk_ref`, and `just manifest` there runs it through `bunx`. The
+# script copies template/justfile and template/bitty-plugin.toml into a temp
+# dir, applies the pin, and runs the copy's real `manifest` recipe; tracked
+# files are never written. Run after every PLUGIN_SDK_REF bump. Network
+# required on the first run per ref (bunx cache).
 refresh-sdk-pin:
     bun scripts/refresh-sdk-pin.mjs
 
-# End-to-end re-resolution check for PX-0103: on a scratch copy, bump the pin to
-# a different SDK commit, run `refresh-sdk-pin`, and prove the lockfile tuple
-# moves to the new short SHA and the placeholder is restored. Network required;
-# prints SKIP and exits 0 when the SDK remote is unreachable. Not part of
-# `just check`.
+# End-to-end pin-bump check: run `refresh-sdk-pin` with a different SDK
+# commit and prove it resolves and lints while template/justfile keeps its
+# placeholder byte-for-byte. Network required; prints SKIP and exits 0 when
+# the SDK remote is unreachable. Not part of `just check`.
 verify-sdk-pin:
     bun scripts/verify-sdk-pin-refresh.mjs
 
@@ -99,18 +101,18 @@ verify-sdk-pin:
 host-integration dir="tmp/clean-generation/hello-plugin" id="example.hello":
     bun scripts/verify-host-integration.mjs --dir {{dir}} --id {{id}}
 
-# Generate a fresh example plugin into an ignored scratch dir, install its
-# pinned dependencies, and run the generated repository's own gates plus this
+# Generate a fresh example plugin into an ignored scratch dir and run the
+# generated repository's own Lua-only gates (`just check`: SDK manifest lint
+# through bunx, luac5.4 parse, fail-closed parser control) plus this
 # repository's Markdown rules over the generated README (clean-generation
-# evidence). The install materializes the commit-pinned `bitty-plugin-lint`
-# that `just manifest` runs, matching the generated CI workflow. The `:` prefix
-# marks the README as a literal path so markdownlint still checks it even
-# though `tmp` is in the shared ignore list.
+# evidence). Nothing is installed into the generated tree, matching the
+# generated CI workflow. The `:` prefix marks the README as a literal path so
+# markdownlint still checks it even though `tmp` is in the shared ignore list.
 clean-generation:
     @rm -rf tmp/clean-generation
     @mkdir -p tmp/clean-generation
     bun scripts/generate-plugin.mjs --id example.hello --name "Hello Plugin" --description "Minimal runnable Bitty plugin example." --version 0.1.0 --dir tmp/clean-generation/hello-plugin
-    cd tmp/clean-generation/hello-plugin && bun install --frozen-lockfile && just check
+    cd tmp/clean-generation/hello-plugin && just check
     bunx --bun markdownlint-cli2@{{markdownlint_pin}} --no-globs ':tmp/clean-generation/hello-plugin/README.md'
     bun scripts/verify-host-integration.mjs --dir tmp/clean-generation/hello-plugin --id example.hello
 
