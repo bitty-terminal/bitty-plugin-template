@@ -15,9 +15,9 @@ import {
 } from "./check-template-sdk-sync.mjs";
 import {
   PLACEHOLDER,
-  RESOLVE_COMMAND,
+  SDK_REF_DECLARATION,
   applyPin,
-  lockfileTupleMatches,
+  justfileDeclaresSdkRef,
   restorePlaceholder,
 } from "./refresh-sdk-pin.mjs";
 
@@ -214,44 +214,61 @@ describe("SDK lint pin (CTX-0017)", () => {
     expect(PLUGIN_SDK_REF).toMatch(/^[0-9a-f]{40}$/);
   });
 
-  test("template package.json and lockfile carry the SDK ref placeholder", () => {
-    const manifest = templateFile("package.json");
-    const lockfile = templateFile("bun.lock");
-    expect(manifest).toContain(
-      '"bitty-plugin-sdk": "github:bitty-terminal/bitty-plugin-sdk#@@PLUGIN_SDK_REF@@"',
+  test("template justfile declares the SDK ref placeholder once", () => {
+    const justfile = templateFile("justfile");
+    expect(justfile).toContain(SDK_REF_DECLARATION);
+    expect(justfile.split(PLACEHOLDER).length - 1).toBe(1);
+    expect(justfileDeclaresSdkRef(justfile)).toBe(true);
+    expect(justfile).toContain(
+      "bunx --bun --package github:bitty-terminal/bitty-plugin-sdk#{{ sdk_ref }} bitty-plugin-lint bitty-plugin.toml",
     );
-    expect(lockfile).toContain("#@@PLUGIN_SDK_REF@@");
-    expect(manifest).toContain('"luaparse": "0.3.1"');
   });
 
-  test("template lockfile resolves the pinned SDK commit", () => {
-    expect(lockfileTupleMatches(templateFile("bun.lock"))).toBe(true);
+  test("template justfile runs a Lua 5.4 parse gate with a fail-closed control", () => {
+    const justfile = templateFile("justfile");
+    expect(justfile).toContain('luac := env("LUAC", "luac5.4")');
+    expect(justfile).toMatch(/^lua:$/m);
+    expect(justfile).toMatch(/^lua-control:$/m);
+    expect(justfile).toMatch(/^check: manifest lua lua-control$/m);
+    expect(justfile).not.toMatch(/^(install|deps):/m);
+    expect(justfile).not.toContain("luaparse");
+    expect(justfile).not.toContain("node_modules");
   });
 
-  test("lockfile guard rejects a stale resolved commit", () => {
-    const short = PLUGIN_SDK_REF.slice(0, 7);
-    const resolved =
-      `bitty-plugin-sdk@github:bitty-terminal/bitty-plugin-sdk#${short}` +
-      ` bitty-terminal-bitty-plugin-sdk-${short}`;
-    expect(lockfileTupleMatches(resolved)).toBe(true);
-    expect(lockfileTupleMatches(resolved.replaceAll(short, "deadbee"))).toBe(
+  test("sdk_ref guard rejects a missing or concrete declaration", () => {
+    expect(justfileDeclaresSdkRef('sdk_ref := "@@PLUGIN_SDK_REF@@"')).toBe(
+      true,
+    );
+    expect(justfileDeclaresSdkRef(`sdk_ref := "${PLUGIN_SDK_REF}"`)).toBe(
+      false,
+    );
+    expect(
+      justfileDeclaresSdkRef(`sdk_ref := "${PLUGIN_SDK_REF}"`, PLUGIN_SDK_REF),
+    ).toBe(true);
+    expect(justfileDeclaresSdkRef('# sdk_ref := "@@PLUGIN_SDK_REF@@"')).toBe(
       false,
     );
   });
 
-  test("refresh-sdk-pin re-resolves the git dependency", () => {
-    // Regression guard for PX-0103: a bare `bun install` reuses the stale
-    // git-lockfile entry, so the re-resolving subcommand must stay `update`.
-    expect(RESOLVE_COMMAND).toEqual(["update", "bitty-plugin-sdk"]);
+  test("generated tree is Lua only (no JS/TS package files)", () => {
+    for (const file of [
+      "package.json",
+      "bun.lock",
+      "bun.lockb",
+      "package-lock.json",
+      "tsconfig.json",
+    ]) {
+      expect(existsSync(new URL(`../template/${file}`, import.meta.url))).toBe(
+        false,
+      );
+    }
   });
 
   test("refresh-sdk-pin round-trips the placeholder", () => {
-    const manifest = templateFile("package.json");
-    const lockfile = templateFile("bun.lock");
-    expect(applyPin(manifest)).toContain(PLUGIN_SDK_REF);
-    expect(applyPin(manifest)).not.toContain(PLACEHOLDER);
-    expect(restorePlaceholder(applyPin(manifest))).toBe(manifest);
-    expect(restorePlaceholder(applyPin(lockfile))).toBe(lockfile);
+    const justfile = templateFile("justfile");
+    expect(applyPin(justfile)).toContain(PLUGIN_SDK_REF);
+    expect(applyPin(justfile)).not.toContain(PLACEHOLDER);
+    expect(restorePlaceholder(applyPin(justfile))).toBe(justfile);
   });
 
   test("the transitional manifest validator is gone", () => {

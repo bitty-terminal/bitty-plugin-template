@@ -31,7 +31,10 @@ gate tool versions it invokes; never invoke formatters or linters by name):
   use `npm`, `npx`, or `yarn` in any Bitty repository.
 - `markdownlint-cli2`, `prettier`, `commitlint`, `lefthook` — invoked through
   the justfile at its pinned versions; install the locked dependencies with
-  `bun install`.
+  `bun install`. These are this repository's tooling only; generated plugins
+  are Lua only and get none of them.
+- Lua 5.4 (`luac5.4`) — needed by `just clean-generation`, which runs the
+  generated plugin's `luac5.4 -p` parse gate.
 
 ## Development setup
 

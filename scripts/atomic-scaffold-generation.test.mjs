@@ -23,6 +23,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 
+import { PLUGIN_SDK_REF } from "./generate-plugin.mjs";
+
 const SCRIPT_DIR = new URL(".", import.meta.url).pathname;
 const REPO_ROOT = join(SCRIPT_DIR, "..");
 const TEMPLATE_DIR = join(REPO_ROOT, "template");
@@ -291,6 +293,48 @@ describe("atomic scaffold generation", () => {
     // Generated module directory should exist
     expect(existsSync(join(targetDir, "lua", "plugin"))).toBe(true);
     expect(existsSync(join(targetDir, "lua", "plugin", "init.lua"))).toBe(true);
+  });
+
+  test("generated tree is Lua only with the SDK pin in the justfile", () => {
+    const result = spawnSync(
+      "bun",
+      [
+        join(SCRIPT_DIR, "generate-plugin.mjs"),
+        "--id",
+        "test.plugin",
+        "--name",
+        "Test Plugin",
+        "--dir",
+        targetDir,
+      ],
+      { stdio: "inherit" },
+    );
+    expect(result.status).toBe(0);
+
+    const files = [];
+    function collect(dir, prefix) {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const relative = prefix ? `${prefix}/${entry.name}` : entry.name;
+        if (entry.isDirectory()) {
+          collect(join(dir, entry.name), relative);
+        } else {
+          files.push(relative);
+        }
+      }
+    }
+    collect(targetDir, "");
+    expect(files.sort()).toEqual([
+      ".github/workflows/ci.yml",
+      ".gitignore",
+      "README.md",
+      "bitty-plugin.toml",
+      "justfile",
+      "lua/plugin/init.lua",
+    ]);
+
+    const justfile = readFileSync(join(targetDir, "justfile"), "utf8");
+    expect(justfile).toContain(`sdk_ref := "${PLUGIN_SDK_REF}"`);
+    expect(justfile).not.toContain("@@PLUGIN_SDK_REF@@");
   });
 
   test("validation completes before atomic rename", () => {

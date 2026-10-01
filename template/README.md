@@ -4,8 +4,10 @@
 
 This repository was generated from
 [bitty-plugin-template](https://github.com/bitty-terminal/bitty-plugin-template).
-It is a minimal Bitty plugin package: a static manifest, one Lua entry point,
-and a CI quality gate.
+It is a minimal, Lua-only Bitty plugin package: a static manifest, one Lua
+entry point, and a small quality gate. The host loads only `bitty-plugin.toml`
+and the `lua/` module root; there is no JavaScript or TypeScript code and no
+package manifest to install.
 
 > Status: pre-implementation. The Bitty plugin host is still landing, and the
 > entry point below follows the frozen Plugin API v1 generation pipeline
@@ -15,8 +17,8 @@ and a CI quality gate.
 > `process.spawn` v1-OUT). `just check` validates the manifest with the
 > authoritative `bitty-plugin-lint` from
 > [bitty-plugin-sdk](https://github.com/bitty-terminal/bitty-plugin-sdk)
-> (pinned by commit in `package.json` and `bun.lock`) and parses the Lua entry
-> point, with a fail-closed parser control so the parse cannot silently pass.
+> (pinned by commit in the `justfile`) and parses the Lua sources, with a
+> fail-closed parser control so the parse cannot silently pass.
 > Entry layout: the package root holds `bitty-plugin.toml` (the discovery
 > unit) and the `lua/` module root (the `require` root). The host resolves the
 > fixed `init.lua` entry as `lua/<module>/init.lua` (or `lua/init.lua`) and
@@ -30,30 +32,39 @@ and a CI quality gate.
 | -------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | `bitty-plugin.toml`              | Static manifest: identity, compatibility, capability requests, and lazy triggers.                      |
 | `lua/@@PLUGIN_MODULE@@/init.lua` | Entry point evaluated once per activation; every resource it creates belongs to the plugin generation. |
-| `package.json`                   | Pinned dev dependencies: the authoritative `bitty-plugin-lint` (by commit) and `luaparse`.             |
-| `bun.lock`                       | Locked dependency graph installed by `just install`.                                                   |
-| `justfile`                       | Quality gates with pinned tool versions.                                                               |
+| `justfile`                       | Quality gates; the only place tool pins live (`sdk_ref`).                                              |
 | `.github/workflows/ci.yml`       | CI gate with a read-only token and SHA-pinned actions.                                                 |
+
+## Prerequisites
+
+- [`just`](https://github.com/casey/just) to run the gates.
+- [`bun`](https://bun.sh), only so `bunx` can run the commit-pinned
+  `bitty-plugin-lint`. Nothing is installed into this repository.
+- Lua 5.4 (`lua5.4` package, providing `luac5.4`). The host VM targets the
+  Lua 5.4 language, so the Lua gate parses with the 5.4 compiler. Set
+  `LUAC=<path>` when your platform names the binary differently.
 
 ## Development
 
-Install the pinned dependencies once, then run the same gate CI runs:
+Run the same gate CI runs:
 
 ```sh
-just install   # bun install --frozen-lockfile; the only network step
 just check
 ```
 
-`just install` materializes `bitty-plugin-lint` (bitty-plugin-sdk, pinned by
-commit in `package.json` and `bun.lock`) and `luaparse`; every gate then runs
-offline. `just manifest` validates `bitty-plugin.toml` with the authoritative
-SDK linter against the accepted contract in bitty-docs
-`docs/specifications/plugin-platform-rfc.md` (file name, identity,
-compatibility, capability closed set, lazy triggers, hard limits). `just lua`
-runs the pinned `luaparse` 0.3.1 CLI over the entry point; `just lua-control`
-feeds the same parser an invalid snippet and requires rejection, so a recipe
-that stopped reading the entry point cannot pass silently. `just check` runs
-all three.
+`just manifest` validates `bitty-plugin.toml` with the authoritative SDK
+linter, fetched by `bunx` from the bitty-plugin-sdk commit pinned in the
+`sdk_ref` variable of the `justfile`, against the accepted contract in
+bitty-docs `docs/specifications/plugin-platform-rfc.md` (file name, identity,
+compatibility, capability closed set, lazy triggers, hard limits). The first
+run needs network access to fill the bunx cache; later runs reuse it.
+`just lua` parses every `.lua` file under `lua/` with `luac5.4 -p` and fails
+when none is found; `just lua-control` feeds the same checker an invalid
+snippet and requires rejection, so a missing or no-op checker cannot pass
+silently. `just check` runs all three.
+
+Formatters, Markdown lint, commit hooks, a Lua language server, and dependency
+bots are optional. Add whichever you prefer; the plugin does not need them.
 
 ## Capabilities
 

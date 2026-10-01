@@ -16,9 +16,11 @@
  * Placeholder tokens use the `@@PLUGIN_*@@` form because Markdown formatters
  * rewrite underscore emphasis (`__NAME__`), which would corrupt substitutions.
  * `@@PLUGIN_SDK_REF@@` carries the pinned `bitty-plugin-lint` (bitty-plugin-sdk)
- * commit from `PLUGIN_SDK_REF` into the generated `package.json` and `bun.lock`,
- * so generated repositories lint their manifest with the authoritative SDK
- * instead of a vendored validator (CTX-0017).
+ * commit from `PLUGIN_SDK_REF` into the `sdk_ref` variable of the generated
+ * `justfile`, so generated repositories lint their manifest with the
+ * authoritative SDK (run through `bunx`) instead of a vendored validator
+ * (CTX-0017). Generated repositories are Lua only (CTX-0047): no
+ * `package.json`, lockfile, or other JS/TS tooling is generated.
  *
  * Generated Markdown tables are re-aligned after substitution (see
  * `alignMarkdownTables`): a shorter or longer placeholder value would otherwise
@@ -66,17 +68,19 @@ const DEFAULT_VERSION = "0.1.0";
 
 /**
  * Pinned `bitty-plugin-lint` (bitty-plugin-sdk) commit, substituted for the
- * `@@PLUGIN_SDK_REF@@` token in the generated `package.json` and `bun.lock`.
- * Generated repositories install the authoritative manifest linter from this
- * commit rather than vendoring a re-implementation (CTX-0017). The pin tracks
+ * `@@PLUGIN_SDK_REF@@` token in the generated `justfile` (`sdk_ref`). This is
+ * the single source of truth for the SDK pin in this repository. Generated
+ * repositories run the authoritative manifest linter from this commit through
+ * `bunx` rather than vendoring a re-implementation (CTX-0017). The pin tracks
  * the frozen generation pipeline (CTX-0053 / SDK #109, re-wired by SDK #118
  * for issue #80): per-namespace host parity from bitty #1303 as re-wired by
  * bitty #1391 (WIRED `keymaps`/`tasks`/`services`, DEFERRED `env` with typed
  * `E_NOT_IMPLEMENTED`, `process.spawn` v1-OUT). Maintenance: when
- * the SDK manifest contract moves, bump this SHA and regenerate
- * `template/bun.lock` in the same change (the lockfile embeds the short SHA and
- * cache key derived from it), then run `just clean-generation` and
- * `just template-sdk-sync`.
+ * the SDK manifest contract moves, bump this SHA together with
+ * `FROZEN_SDK_REF` in `scripts/check-template-sdk-sync.mjs` (the drift guard
+ * that must agree with it), re-vendor the contract (`just
+ * vendor-sdk-contract`), then run `just refresh-sdk-pin`,
+ * `just clean-generation`, and `just template-sdk-sync`.
  */
 export const PLUGIN_SDK_REF = "e1723b60cc94d3abc18821c9e6b14c6c88f33add";
 
@@ -165,8 +169,8 @@ function validatePluginId(id) {
 /**
  * SemVer 2 pattern, mirrored from `versionProblem`/`SEMVER_2` in
  * `bitty-plugin-sdk/src/manifest.ts`, the lint contract the generated manifest
- * must satisfy. The SDK linter is installed into generated repositories (not
- * into this generator), so input validation keeps a synchronized copy of the
+ * must satisfy. The SDK linter runs in generated repositories (not in this
+ * generator), so input validation keeps a synchronized copy of the
  * pattern. Stay fail-closed: boundary versions the SDK rejects (empty
  * pre-release/build identifiers, underscores, missing segments, leading zeros)
  * are rejected here before anything is written; the generated repository then

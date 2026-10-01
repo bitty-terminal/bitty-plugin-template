@@ -9,8 +9,10 @@
  * check fails closed (exit 1) whenever the template scaffold drifts from the
  * frozen pipeline it claims to track:
  *
- *   - the `PLUGIN_SDK_REF` pin in `scripts/generate-plugin.mjs`,
- *   - the resolved `template/bun.lock` tuple for that pin,
+ *   - the `PLUGIN_SDK_REF` pin in `scripts/generate-plugin.mjs` and its
+ *     `sdk_ref := "@@PLUGIN_SDK_REF@@"` placeholder in `template/justfile`,
+ *   - the Lua-only generated tree (CTX-0047): no `package.json`, `bun.lock`,
+ *     or other JS/TS tooling under `template/`,
  *   - the pending-host flags in the scaffold (`keymaps`/`tasks`/`services`
  *     WIRED, `env` DEFERRED with typed `E_NOT_IMPLEMENTED`,
  *     `process.spawn` v1-OUT, from bitty #1303 as re-wired by bitty #1391),
@@ -31,7 +33,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { PLUGIN_SDK_REF } from "./generate-plugin.mjs";
-import { lockfileTupleMatches } from "./refresh-sdk-pin.mjs";
+import { justfileDeclaresSdkRef } from "./refresh-sdk-pin.mjs";
 
 /** Frozen SDK pipeline commit (bitty-plugin-sdk #109, re-wired by #118). */
 export const FROZEN_SDK_REF = "e1723b60cc94d3abc18821c9e6b14c6c88f33add";
@@ -61,11 +63,22 @@ const DEFAULT_REPO_ROOT = join(SCRIPT_DIR, "..");
 const INIT_LUA = join("template", "lua", "@@PLUGIN_MODULE@@", "init.lua");
 const MANIFEST = join("template", "bitty-plugin.toml");
 const TEMPLATE_README = join("template", "README.md");
-const TEMPLATE_PACKAGE = join("template", "package.json");
-const TEMPLATE_LOCKFILE = join("template", "bun.lock");
 const TEMPLATE_JUSTFILE = join("template", "justfile");
 const TEMPLATE_CI = join("template", ".github", "workflows", "ci.yml");
 const GENERATOR = join("scripts", "generate-plugin.mjs");
+
+/**
+ * JS/TS tooling files that must not appear in the generated tree: plugins run
+ * Lua only, and optional author tooling is never generated (CTX-0047).
+ */
+export const FORBIDDEN_TEMPLATE_FILES = [
+  join("template", "package.json"),
+  join("template", "bun.lock"),
+  join("template", "bun.lockb"),
+  join("template", "package-lock.json"),
+  join("template", "tsconfig.json"),
+  join("template", "node_modules"),
+];
 
 /** Entry points with no v1 spelling; live scaffold code must not use them. */
 const FORBIDDEN_LIVE_APIS = [
@@ -151,31 +164,12 @@ export function checkTree(root) {
     requireMarker(problems, GENERATOR, generator, "SEMVER_2");
   }
 
-  const lockfile = readTreeFile(problems, root, TEMPLATE_LOCKFILE);
-  if (lockfile !== undefined) {
-    requireMarker(
-      problems,
-      TEMPLATE_LOCKFILE,
-      lockfile,
-      "bitty-plugin-sdk#@@PLUGIN_SDK_REF@@",
-    );
-    if (!lockfileTupleMatches(lockfile, FROZEN_SDK_REF)) {
+  for (const relative of FORBIDDEN_TEMPLATE_FILES) {
+    if (existsSync(join(root, relative))) {
       problems.push(
-        `${TEMPLATE_LOCKFILE} resolved SDK tuple does not match the frozen ${FROZEN_SDK_REF.slice(0, 7)}; run just refresh-sdk-pin`,
+        `${relative} must not exist: generated plugins are Lua only`,
       );
     }
-  }
-
-  const packageJson = readTreeFile(problems, root, TEMPLATE_PACKAGE);
-  if (packageJson !== undefined) {
-    requireMarker(
-      problems,
-      TEMPLATE_PACKAGE,
-      packageJson,
-      "github:bitty-terminal/bitty-plugin-sdk#@@PLUGIN_SDK_REF@@",
-    );
-    forbidMarker(problems, TEMPLATE_PACKAGE, packageJson, "postinstall");
-    forbidMarker(problems, TEMPLATE_PACKAGE, packageJson, "preinstall");
   }
 
   const initLua = readTreeFile(problems, root, INIT_LUA);
@@ -239,6 +233,8 @@ export function checkTree(root) {
     forbidMarker(problems, TEMPLATE_CI, ci, "pull_request_target");
     forbidMarker(problems, TEMPLATE_CI, ci, "contents: write");
     forbidMarker(problems, TEMPLATE_CI, ci, "publish");
+    forbidMarker(problems, TEMPLATE_CI, ci, "bun install");
+    requireMarker(problems, TEMPLATE_CI, ci, "lua5.4");
     for (const line of ci.split("\n")) {
       const trimmed = line.trimStart();
       if (!trimmed.startsWith("uses:")) {
@@ -252,9 +248,32 @@ export function checkTree(root) {
 
   const justfile = readTreeFile(problems, root, TEMPLATE_JUSTFILE);
   if (justfile !== undefined) {
-    requireMarker(problems, TEMPLATE_JUSTFILE, justfile, "bitty-plugin-lint");
-    requireMarker(problems, TEMPLATE_JUSTFILE, justfile, "frozen-lockfile");
+    if (!justfileDeclaresSdkRef(justfile)) {
+      problems.push(
+        `${TEMPLATE_JUSTFILE} must declare sdk_ref := "@@PLUGIN_SDK_REF@@"`,
+      );
+    }
+    requireMarker(
+      problems,
+      TEMPLATE_JUSTFILE,
+      justfile,
+      "github:bitty-terminal/bitty-plugin-sdk#{{ sdk_ref }} bitty-plugin-lint",
+    );
     requireMarker(problems, TEMPLATE_JUSTFILE, justfile, "lua-control");
+    requireMarker(problems, TEMPLATE_JUSTFILE, justfile, "luac5.4");
+    for (const marker of [
+      "bun install",
+      "frozen-lockfile",
+      "node_modules",
+      "luaparse",
+    ]) {
+      forbidMarker(problems, TEMPLATE_JUSTFILE, justfile, marker);
+    }
+    if (/^(install|deps):/m.test(justfile)) {
+      problems.push(
+        `${TEMPLATE_JUSTFILE} must not define install/deps recipes`,
+      );
+    }
   }
 
   return problems;

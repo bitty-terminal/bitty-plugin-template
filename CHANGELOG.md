@@ -38,6 +38,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Generated plugins are Lua only (`CTX-0047`, issue #102): the scaffold no
+  longer generates `package.json` or `bun.lock`. The generated `justfile`
+  pins the SDK in one variable, `sdk_ref` (substituted from `PLUGIN_SDK_REF`),
+  and runs `just manifest` as `bunx --bun --package
+github:bitty-terminal/bitty-plugin-sdk#{{ sdk_ref }} bitty-plugin-lint`;
+  `just lua` parses every `lua/` source with `luac5.4 -p` (the host VM
+  targets Lua 5.4) and `just lua-control` requires the same checker to reject
+  invalid input. The `install`/`deps` recipes and the `luaparse` dependency
+  are gone, and the generated CI drops `bun install` and installs `lua5.4`.
+  Optional author tooling stays out of the generated tree.
+  `just refresh-sdk-pin` now proves the pinned commit resolves and lints the
+  template manifest instead of regenerating a lockfile, and
+  `just template-sdk-sync` fails if JS/TS package files reappear.
 - Track the SDK `services` re-wire (issue #80, companion to bitty-plugin-sdk
   #115): the frozen pipeline pin advances to the SDK re-wire commit, the
   pending-host flags flip `services` DEFERRED -> WIRED (host parity from bitty
