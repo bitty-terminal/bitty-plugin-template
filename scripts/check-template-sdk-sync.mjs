@@ -15,7 +15,7 @@
  *     or other JS/TS tooling under `template/`,
  *   - the pending-host flags in the scaffold (`keymaps`/`tasks`/`services`
  *     WIRED, `env` DEFERRED with typed `E_NOT_IMPLEMENTED`,
- *     `process.spawn` v1-OUT, from bitty #1303 as re-wired by bitty #1391),
+ *     `process.spawn` v1-OUT; the parity pin is bitty #1641),
  *   - the least-privilege defaults (no install-time execution, no ambient
  *     authority, no allow-all capabilities, read-only CI).
  *
@@ -36,13 +36,13 @@ import { PLUGIN_SDK_REF } from "./generate-plugin.mjs";
 import { justfileDeclaresSdkRef } from "./refresh-sdk-pin.mjs";
 
 /** Frozen SDK pipeline commit (bitty-plugin-sdk #109, re-wired by #118). */
-export const FROZEN_SDK_REF = "e1723b60cc94d3abc18821c9e6b14c6c88f33add";
+export const FROZEN_SDK_REF = "5a679421cfa2e7639a1d745d439c5db389f47d36";
 
 /** Host revision the frozen parity verdicts are pinned against. */
 export const HOST_PARITY_SOURCE = {
   repository: "bitty",
-  commit: "b8673937b6825ae4e7f1c35f4adc152ffd171f87",
-  pr: 1391,
+  commit: "fb44a8671ea7526c985d8f0ca3f57ef9b82f09e0",
+  pr: 1641,
 };
 
 /** Namespaces the frozen host has not wired yet (fail closed). */
@@ -209,6 +209,13 @@ export function checkTree(root) {
     requireMarker(problems, MANIFEST, manifest, "#1303");
     requireMarker(problems, MANIFEST, manifest, "E_NOT_IMPLEMENTED");
     requireMarker(problems, MANIFEST, manifest, "platform.notify");
+    requireMarker(problems, MANIFEST, manifest, "[settings]");
+    requireMarker(
+      problems,
+      MANIFEST,
+      manifest,
+      'greeting = { type = "string", default = "Hello" }',
+    );
     forbidMarker(problems, MANIFEST, manifest, '"*"');
     forbidMarker(problems, MANIFEST, manifest, "allow_all");
     forbidMarker(problems, MANIFEST, manifest, "allowAll");
@@ -225,6 +232,17 @@ export function checkTree(root) {
     requireMarker(problems, TEMPLATE_README, readme, "bitty.d.lua");
     requireMarker(problems, TEMPLATE_README, readme, "WIRED");
     requireMarker(problems, TEMPLATE_README, readme, "DEFERRED");
+    for (const section of [
+      "## Overview",
+      "## Install",
+      "## Commands",
+      "## Configuration",
+      "## Keybindings",
+      "## Troubleshooting",
+    ]) {
+      requireMarker(problems, TEMPLATE_README, readme, section);
+    }
+    requireMarker(problems, TEMPLATE_README, readme, "| `greeting` | string |");
   }
 
   const ci = readTreeFile(problems, root, TEMPLATE_CI);
@@ -260,6 +278,18 @@ export function checkTree(root) {
       "github:bitty-terminal/bitty-plugin-sdk#{{ sdk_ref }} bitty-plugin-lint",
     );
     requireMarker(problems, TEMPLATE_JUSTFILE, justfile, "lua-control");
+    requireMarker(
+      problems,
+      TEMPLATE_JUSTFILE,
+      justfile,
+      "bitty-plugin-docs-check",
+    );
+    requireMarker(
+      problems,
+      TEMPLATE_JUSTFILE,
+      justfile,
+      "check: manifest lua lua-control docs",
+    );
     requireMarker(problems, TEMPLATE_JUSTFILE, justfile, "luac5.4");
     for (const marker of [
       "bun install",

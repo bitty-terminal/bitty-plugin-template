@@ -73,16 +73,17 @@ const DEFAULT_VERSION = "0.1.0";
  * repositories run the authoritative manifest linter from this commit through
  * `bunx` rather than vendoring a re-implementation (CTX-0017). The pin tracks
  * the frozen generation pipeline (CTX-0053 / SDK #109, re-wired by SDK #118
- * for issue #80): per-namespace host parity from bitty #1303 as re-wired by
- * bitty #1391 (WIRED `keymaps`/`tasks`/`services`, DEFERRED `env` with typed
- * `E_NOT_IMPLEMENTED`, `process.spawn` v1-OUT). Maintenance: when
+ * for issue #80): per-namespace host parity is pinned to bitty #1641; the
+ * original wiring landed in bitty #1303 (`keymaps`/`tasks`/`services` WIRED,
+ * `env` DEFERRED with typed `E_NOT_IMPLEMENTED`, `process.spawn` v1-OUT).
+ * Maintenance: when
  * the SDK manifest contract moves, bump this SHA together with
  * `FROZEN_SDK_REF` in `scripts/check-template-sdk-sync.mjs` (the drift guard
  * that must agree with it), re-vendor the contract (`just
  * vendor-sdk-contract`), then run `just refresh-sdk-pin`,
  * `just clean-generation`, and `just template-sdk-sync`.
  */
-export const PLUGIN_SDK_REF = "e1723b60cc94d3abc18821c9e6b14c6c88f33add";
+export const PLUGIN_SDK_REF = "5a679421cfa2e7639a1d745d439c5db389f47d36";
 
 const USAGE =
   "usage: bun scripts/generate-plugin.mjs --id <owner.name> " +

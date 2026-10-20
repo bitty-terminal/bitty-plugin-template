@@ -42,7 +42,8 @@ gate tool versions it invokes; never invoke formatters or linters by name):
 2. Install pinned development dependencies: `bun install`.
 3. Enable Git hooks (optional): `just hooks-install`.
 4. Run all quality gates: `just check` (Markdown lint, Prettier format check,
-   and the generator test suite). CI runs the same aggregate target.
+   the generator test suite, the template/SDK drift guard, and the generated
+   README contract check). CI runs the same aggregate target.
 5. Record scoped work in CarryCtx (task, session, progress, checkpoint) and
    stop at review; independent review is required for acceptance.
 

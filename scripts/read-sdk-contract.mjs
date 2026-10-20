@@ -26,7 +26,7 @@ export const VENDORED_CONTRACT_REL = "vendor/host-contract.json";
 
 /** SHA-256 of the vendored artifact bytes; updated only with the snapshot. */
 export const VENDORED_CONTRACT_SHA256 =
-  "8de6c80ff977a5d62ed0a91d27e4415ccc2b32b698a40dee14003d9e176baa87";
+  "f01f21b45af50132ddd9435846b9b880b1fa265debea044b5b7866bb5056c46c";
 
 /**
  * Determine the SDK contract path using the following precedence:

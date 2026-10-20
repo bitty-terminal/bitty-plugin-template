@@ -24,7 +24,7 @@ jobs:
         uses: taiki-e/install-action@b6ff580856c41316412a0b9b60540fbc6f8c82cc # v2
         with:
           tool: just
-      - name: Set up Bun (runs the commit-pinned manifest linter via bunx)
+      - name: Set up Bun (runs the pinned manifest and README checks via bunx)
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version: 1.4.2

@@ -19,6 +19,16 @@
 
 local M = {}
 
+-- Declared settings keep the read surface typed and explicit: the key is
+-- declared in `bitty-plugin.toml` `[settings]`, the host resolves the shipped
+-- default or the user's value at activation, and an undeclared key fails
+-- closed with `E_SETTINGS_UNDECLARED`. The README Configuration table is
+-- checked against the same declaration by `just docs`.
+local greeting = bitty.settings.get("greeting")
+if type(greeting) ~= "string" then
+  greeting = "Hello"
+end
+
 -- Command `id` is a plugin-local short segment; the host assembles the
 -- qualified `<plugin-id>:<resource>` name from the `[lazy].commands`
 -- reservation in `bitty-plugin.toml`. Pass the short `id` here, never the
@@ -31,7 +41,7 @@ bitty.commands.register({
   run = function()
     bitty.notify.show({
       title = "@@PLUGIN_NAME@@",
-      body = "Hello from @@PLUGIN_ID@@.",
+      body = greeting .. " from @@PLUGIN_ID@@.",
     })
   end,
 })

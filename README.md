@@ -35,9 +35,10 @@ Then `carryctx stats` reports the restored tasks, sessions, and checkpoints.
 - `template/` — the generated plugin tree. Generated plugins are Lua only
   (the host loads `bitty-plugin.toml` and `lua/`): `bitty-plugin.toml`,
   `lua/<module>/init.lua`, a `justfile` whose `sdk_ref` pins the authoritative
-  `bitty-plugin-lint` commit, README, `.gitignore`, and a CI workflow. No
-  `package.json`, lockfile, or optional author tooling (formatters, Markdown
-  lint, commit hooks, LuaLS, dependency bots) is generated.
+  `bitty-plugin-lint` commit, the canonical user README, `.gitignore`, and a
+  CI workflow. No `package.json`, lockfile, or optional author tooling
+  (formatters, Markdown lint, commit hooks, LuaLS, dependency bots) is
+  generated.
 - `scripts/generate-plugin.mjs` — deterministic generator with validated
   inputs that refuses to overwrite an existing target.
 - `scripts/verify-host-integration.mjs` — host integration gate for a
@@ -46,7 +47,27 @@ Then `carryctx stats` reports the restored tasks, sessions, and checkpoints.
 - `just clean-generation` — generates an example plugin into an ignored
   scratch directory, runs the generated repository's own `just check`, and
   verifies the tree against the host discovery and activation contract.
-- `just check` — repository formatting and Markdown lint gates.
+- `just check` — repository formatting and Markdown lint gates, generator
+  tests, the template/SDK drift guard, and the generated README contract
+  check.
+- `just docs-check` — runs `bitty-plugin-docs-check` from the pinned SDK
+  against a freshly generated tree.
+
+## Plugin README convention
+
+Each generated plugin's root `README.md` is its single canonical user
+document: there is no `docs/` tree for user content. Six H2 sections lead it in
+fixed order — `Overview`, `Install`, `Commands`, `Configuration`,
+`Keybindings`, `Troubleshooting` — and developer or architecture sections
+follow.
+
+The `Configuration` table is derived from `bitty-plugin.toml` `[settings]`.
+The generated `just docs` gate fails when a declared key is missing from the
+table, when the table names a key the manifest does not declare, when a type
+disagrees, or when rows do not follow the manifest declaration order. The
+checker and the full convention are owned by
+[bitty-plugin-sdk](https://github.com/bitty-terminal/bitty-plugin-sdk); see
+its `docs/user-documentation.md`.
 
 ## Generating a plugin
 
@@ -68,8 +89,8 @@ placeholder remains.
 `just clean-generation` is the repeatable evidence gate: it generates a fresh
 tree from template source, runs that tree's documented Lua-only checks
 (authoritative SDK manifest lint through `bunx`, a `luac5.4 -p` parse of
-every Lua source, and a fail-closed parser control; nothing is installed into
-the generated tree), verifies the tree against
+every Lua source, a fail-closed parser control, and the README contract check;
+nothing is installed into the generated tree), verifies the tree against
 the host discovery and activation contract
 (`bun scripts/verify-host-integration.mjs`, discovery and activation checked
 separately), and lints the generated README with this repository's Markdown
@@ -111,8 +132,9 @@ bitty-plugin-lint bitty-plugin.toml`; the first run needs network to fill
   (`scripts/check-template-sdk-sync.mjs`, part of `just check`): it fails
   closed whenever the scaffold drifts from the frozen pipeline — the SDK pin
   and its `sdk_ref` placeholder, the Lua-only generated tree (no
-  `package.json`/`bun.lock`), the pending-host flags in `init.lua`, the
-  least-privilege defaults, and the read-only SHA-pinned CI. It runs offline.
+  `package.json`/`bun.lock`), the six required README sections and their
+  settings row, the pending-host flags in `init.lua`, the least-privilege
+  defaults, and the read-only SHA-pinned CI. It runs offline.
 - Plugin API bindings in `init.lua` follow the frozen v1 surface; the
   authoritative Lua bindings are the SDK `bitty.d.lua` (R-SDK-1). The
   `services` namespace is WIRED (bitty #1391: the example provides and
@@ -131,7 +153,8 @@ never publish from pull-request code.
 ## Repository checks
 
 ```sh
-just check            # markdownlint + prettier + generator tests
+just check            # lint, format, tests, SDK drift guard, generated README check
+just docs-check       # check the generated README against bitty-plugin.toml [settings]
 just clean-generation # generate a plugin, run its gates, verify host integration
 just host-integration # verify a generated tree against the host contract only
 ```

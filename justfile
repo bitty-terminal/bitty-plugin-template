@@ -60,8 +60,14 @@ test:
 template-sdk-sync:
     bun scripts/check-template-sdk-sync.mjs
 
+# Check generated-template README user documentation against
+# template/bitty-plugin.toml [settings] with the SDK checker at the pinned
+# PLUGIN_SDK_REF. Requires network on the first run per SDK ref (bunx cache).
+docs-check:
+    bun scripts/check-template-docs.mjs
+
 # Aggregate gate run locally and in CI.
-check: lint fmt-check test template-sdk-sync
+check: lint fmt-check test template-sdk-sync docs-check
 
 # Re-vendor the SDK host contract snapshot from the pinned SDK commit
 # (Issue #100). Regenerates scripts/vendor/host-contract.json and its recorded
