@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Canonical plugin README user documentation in the generated tree: six H2
+  sections in fixed order (`Overview`, `Install`, `Commands`, `Configuration`,
+  `Keybindings`, `Troubleshooting`), a `Configuration` table derived from
+  `bitty-plugin.toml` `[settings]`, and a `just docs` gate that runs
+  `bitty-plugin-docs-check` from the pinned SDK. The template gains an example
+  `greeting` setting that `init.lua` reads through `bitty.settings.get`.
+  `just check` also runs `docs-check` against a freshly generated tree, and
+  the template/SDK drift guard now requires the six sections and the settings
+  row.
+
 - R-SDK-2 drift rule for the template itself (`CTX-0036`): new
   `scripts/check-template-sdk-sync.mjs` with `just template-sdk-sync` (part of
   `just check`, offline). It fails closed whenever the scaffold drifts from

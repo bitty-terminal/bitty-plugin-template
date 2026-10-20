@@ -229,7 +229,8 @@ describe("SDK lint pin (CTX-0017)", () => {
     expect(justfile).toContain('luac := env("LUAC", "luac5.4")');
     expect(justfile).toMatch(/^lua:$/m);
     expect(justfile).toMatch(/^lua-control:$/m);
-    expect(justfile).toMatch(/^check: manifest lua lua-control$/m);
+    expect(justfile).toMatch(/^check: manifest lua lua-control docs$/m);
+    expect(justfile).toContain("bitty-plugin-docs-check");
     expect(justfile).not.toMatch(/^(install|deps):/m);
     expect(justfile).not.toContain("luaparse");
     expect(justfile).not.toContain("node_modules");

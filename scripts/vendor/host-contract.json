@@ -1,13 +1,13 @@
 {
   "format": "bitty-host-contract/v1",
-  "sdk_revision": "e1723b60cc94d3abc18821c9e6b14c6c88f33add",
+  "sdk_revision": "5a679421cfa2e7639a1d745d439c5db389f47d36",
   "generated_at": "vendored",
-  "content_hash": "8cec240d9b25a409925f1fa252b5cada6cf851e68fb345ffa273942bcbb1bf0f",
+  "content_hash": "eff8ad67d6d88354b84da579ccd065fe000a27798ca55102f19dd614240cb371",
   "plugin_api_version": "1.0.0",
   "host_parity": {
     "repository": "bitty",
-    "commit": "b8673937b6825ae4e7f1c35f4adc152ffd171f87",
-    "pr": 1391,
+    "commit": "fb44a8671ea7526c985d8f0ca3f57ef9b82f09e0",
+    "pr": 1641,
     "namespaces": [
       {
         "namespace": "commands",
@@ -56,6 +56,26 @@
       {
         "namespace": "timers",
         "status": "wired"
+      },
+      {
+        "namespace": "debug",
+        "status": "wired"
+      },
+      {
+        "namespace": "workspace",
+        "status": "wired"
+      },
+      {
+        "namespace": "process",
+        "status": "wired"
+      },
+      {
+        "namespace": "history",
+        "status": "wired"
+      },
+      {
+        "namespace": "selection",
+        "status": "wired"
       }
     ],
     "deferred_namespaces": [
@@ -81,19 +101,103 @@
         "capability": "ui.overlay"
       },
       {
+        "surface": "bitty.ui.overlay.acquire",
+        "capability": "ui.overlay.focus"
+      },
+      {
+        "surface": "bitty.ui.overlay.update",
+        "capability": "ui.overlay.focus"
+      },
+      {
+        "surface": "bitty.ui.overlay.poll",
+        "capability": "ui.overlay.focus"
+      },
+      {
+        "surface": "bitty.ui.overlay.release",
+        "capability": "ui.overlay.focus"
+      },
+      {
         "surface": "bitty.terminal.snapshot",
         "capability": "terminal.semantic-read"
       },
       {
+        "surface": "bitty.terminal.submit",
+        "capability": "terminal.input.submit"
+      },
+      {
+        "surface": "bitty.process.editor.start",
+        "capability": "process.editor"
+      },
+      {
+        "surface": "bitty.history.transcript.query",
+        "capability": "history.transcript.read"
+      },
+      {
+        "surface": "bitty.history.commands.query",
+        "capability": "history.commands.read"
+      },
+      {
+        "surface": "bitty.history.kv.query",
+        "capability": "history.kv.read"
+      },
+      {
+        "surface": "bitty.selection.copy",
+        "capability": "clipboard.write"
+      },
+      {
         "surface": "bitty.env.get",
-        "capability": "env:<KEY>"
+        "capability": "env.read:<KEY>"
       },
       {
         "surface": "bitty.env.has",
-        "capability": "env:<KEY>"
+        "capability": "env.read:<KEY>"
+      },
+      {
+        "surface": "bitty.debug.inspect",
+        "capability": "debug.inspect"
+      },
+      {
+        "surface": "bitty.debug.trace",
+        "capability": "debug.trace"
+      },
+      {
+        "surface": "bitty.debug.trace_get",
+        "capability": "debug.trace"
+      },
+      {
+        "surface": "bitty.debug.control",
+        "capability": "debug.control"
+      },
+      {
+        "surface": "bitty.workspace.list",
+        "capability": "workspace.read"
+      },
+      {
+        "surface": "bitty.workspace.focus",
+        "capability": "workspace.control"
+      },
+      {
+        "surface": "bitty.workspace.new",
+        "capability": "workspace.control"
+      },
+      {
+        "surface": "bitty.workspace.next",
+        "capability": "workspace.control"
+      },
+      {
+        "surface": "bitty.workspace.close",
+        "capability": "workspace.control"
+      },
+      {
+        "surface": "bitty.workspace.rename",
+        "capability": "workspace.control"
+      },
+      {
+        "surface": "bitty.workspace.move_panel",
+        "capability": "workspace.control"
       }
     ],
-    "env_prefix": "env:"
+    "env_prefix": "env.read:"
   },
   "surface": {
     "functions": [
@@ -111,11 +215,32 @@
       "services.provide",
       "ui.mount",
       "ui.update",
+      "ui.overlay.acquire",
+      "ui.overlay.update",
+      "ui.overlay.poll",
+      "ui.overlay.release",
       "terminal.snapshot",
+      "terminal.submit",
       "tasks.spawn",
       "tasks.cancel",
       "timers.create",
-      "timers.cancel"
+      "timers.cancel",
+      "debug.inspect",
+      "debug.trace",
+      "debug.trace_get",
+      "debug.control",
+      "workspace.list",
+      "workspace.focus",
+      "workspace.new",
+      "workspace.next",
+      "workspace.close",
+      "workspace.rename",
+      "workspace.move_panel",
+      "process.editor.start",
+      "history.transcript.query",
+      "history.commands.query",
+      "history.kv.query",
+      "selection.copy"
     ],
     "event_kinds": [
       {
@@ -184,6 +309,41 @@
         "coalescable": false
       },
       {
+        "kind": "workspace.created",
+        "class": "observation",
+        "coalescable": false
+      },
+      {
+        "kind": "workspace.closed",
+        "class": "observation",
+        "coalescable": false
+      },
+      {
+        "kind": "workspace.renamed",
+        "class": "observation",
+        "coalescable": false
+      },
+      {
+        "kind": "workspace.focused",
+        "class": "observation",
+        "coalescable": false
+      },
+      {
+        "kind": "workspace.changed",
+        "class": "observation",
+        "coalescable": false
+      },
+      {
+        "kind": "overlay.released",
+        "class": "observation",
+        "coalescable": false
+      },
+      {
+        "kind": "overlay.input.available",
+        "class": "observation",
+        "coalescable": true
+      },
+      {
         "kind": "intercept.command-dispatch",
         "class": "interception",
         "coalescable": false
@@ -226,8 +386,50 @@
       "COMMAND_SCHEMA_MAX_DEPTH": 16,
       "COMMAND_ID_MAX_BYTES": 64,
       "UI_MAX_DEPTH": 16,
+      "UI_MAX_NODES": 2048,
+      "UI_MAX_TEXT_BYTES": 262144,
+      "UI_MAX_BLOCKS": 64,
+      "UI_MAX_AGGREGATED_TEXT_BYTES": 2097152,
+      "UI_MARSHAL_MAX_BYTES": 327680,
       "TIMER_MAX_DELAY_MS": 86400000,
-      "CHORD_MAX_BYTES": 64
+      "CHORD_MAX_BYTES": 64,
+      "COMMAND_TITLE_MAX_BYTES": 128,
+      "COMMAND_DESCRIPTION_MAX_BYTES": 1024,
+      "EXIT_CODE_MIN": -2147483648,
+      "EXIT_CODE_MAX": 2147483647,
+      "BRIDGE_MAX_DEPTH": 8,
+      "BRIDGE_MAX_NODES": 1024,
+      "BRIDGE_MAX_VALUE_BYTES": 8192,
+      "WORKSPACE_LIST_MAX_ITEMS": 16,
+      "WORKSPACE_NAME_MAX_CHARS": 32,
+      "WORKSPACE_RENAME_MAX_BYTES": 256,
+      "WORKSPACE_REQUEST_QUEUE_CAPACITY": 32,
+      "DEBUG_INSPECT_MAX_ITEMS": 1024,
+      "DEBUG_TRACE_DEFAULT_MAX_EVENTS": 1000,
+      "DEBUG_TRACE_MIN_EVENTS": 1,
+      "DEBUG_TRACE_MAX_EVENTS": 10000,
+      "DEBUG_TRACES_PER_PLUGIN": 4,
+      "DEBUG_TRACE_PAYLOAD_MAX_BYTES": 4096,
+      "DEBUG_TRACE_FILTER_MAX_BYTES": 128,
+      "DEBUG_TRACE_BUFFER_MAX_BYTES": 1048576,
+      "OVERLAY_QUEUE_MAX": 256,
+      "OVERLAY_PAYLOAD_MAX_BYTES": 4096,
+      "OVERLAY_CALL_MAX_BYTES": 4096,
+      "OVERLAY_IDLE_TIMEOUT_MS": 30000,
+      "COMPOSER_MAX_BYTES": 65536,
+      "SUBMIT_FRAME_OVERHEAD_BYTES": 13,
+      "SUBMIT_BUDGET_DEFAULT_BYTES": 1048576,
+      "EDITOR_TIMEOUT_DEFAULT_MS": 120000,
+      "EDITOR_TIMEOUT_MAX_MS": 300000,
+      "EDITOR_SPAWN_DETAIL_MAX_BYTES": 256,
+      "HISTORY_MAX_ROWS_PER_QUERY": 16,
+      "HISTORY_MAX_BYTES_PER_QUERY": 4096,
+      "HISTORY_MAX_BYTES_PER_ROW": 256,
+      "HISTORY_MAX_QUERIES_PER_WINDOW": 4,
+      "HISTORY_MAX_BYTES_PER_WINDOW": 8192,
+      "HISTORY_MAX_NEEDLE_BYTES": 256,
+      "HISTORY_MAX_SCOPE_ID_BYTES": 128,
+      "SELECTION_COPY_MAX_BYTES": 8192
     }
   },
   "ui": {

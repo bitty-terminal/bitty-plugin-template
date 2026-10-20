@@ -41,6 +41,13 @@ platform.notify = true
 # by the host at install time.
 "@@PLUGIN_ID@@.greeter" = "1.0.0"
 
+[settings]
+# Declared settings keys read through `bitty.settings.get`. Every key also
+# appears in the README Configuration table; `just docs` fails when the key
+# sets differ. The default ships with the plugin and a valid user
+# configuration file overrides it per key.
+greeting = { type = "string", default = "Hello" }
+
 [lazy]
 # Static triggers let the host register the plugin without creating a VM.
 # Commands are plugin-qualified: `<plugin-id>:<resource>`.

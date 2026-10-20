@@ -58,5 +58,12 @@ lua-control:
     fi
     echo "lua-control: '{{ luac }}' rejects invalid Lua"
 
+# The README is the single canonical user document: six required H2 sections
+# in order and a Configuration table that matches `[settings]`. The checker is
+# fetched from the same pinned SDK commit as the manifest linter.
+# Check README user documentation against bitty-plugin.toml [settings].
+docs:
+    bunx --bun --package github:bitty-terminal/bitty-plugin-sdk#{{ sdk_ref }} bitty-plugin-docs-check .
+
 # Aggregate gate run locally and in CI.
-check: manifest lua lua-control
+check: manifest lua lua-control docs
